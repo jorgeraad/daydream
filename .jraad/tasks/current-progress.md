@@ -38,7 +38,6 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/design-docs/20260212143111-music-sound-effects.md` | Branch: `main` | Agent: deep-finch
 
 ## Completed (Pending Merge)
-- **20260212114213 - AI Dialogue** | Branch: `main` | Completed: 2026-02-12
 - **20260212142949 - Fix renderer not starting before screen input** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
