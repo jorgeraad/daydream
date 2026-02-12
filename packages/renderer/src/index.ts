@@ -19,6 +19,7 @@ export { houseTpl, shopTpl, tavernTpl, wellTpl, wallTpl, buildingTemplates } fro
 export { objectGlyphs } from "./palettes/objects.ts";
 export { characterPresets } from "./palettes/characters.ts";
 
+export { LoadingScreen } from "./ui/LoadingScreen.ts";
 export { ContextPanel } from "./ui/ContextPanel.ts";
 export type { ContextPanelData } from "./ui/ContextPanel.ts";
 export { MiniMap } from "./ui/MiniMap.ts";

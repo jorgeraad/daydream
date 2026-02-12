@@ -14,12 +14,13 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **[2026-02-12]** Coordination: 3 tasks in parallel on `main` — TUI Layout (bold-falcon), Character Rendering, AI World Gen (quick-bobcat). All touch `apps/game/src/` but different files. *(Agent: quick-bobcat)*
 - **[2026-02-12]** Integration: GameShell (`apps/game/src/GameShell.ts`) is ready but not wired into `index.ts`. Whoever integrates should use `new GameShell(renderer, zone, x, y)` and call `shell.start()`. It handles layout, input, viewport resize. *(Agent: bold-falcon, Re: 20260212114211)*
 - **[2026-02-12]** Integration: SaveManager (`apps/game/src/SaveManager.ts`) is ready. Usage: `new SaveManager(worldId)` for default path (~/.daydream/worlds/), or `new SaveManager(worldId, { dbPath })` for custom path (tests). Call `saveWorld(ws)` then `startAutoSave(ws)`. Character relationships are serialized as Map↔Object. Chronicle hydration: entries are appended then unsaved buffer is cleared. Still needs: Ctrl+S wiring in InputRouter, save/load screen in GameShell. *(Agent: neat-lynx, Re: 20260212114217)*
+- **[2026-02-12]** Integration: Game flow is now TitleScreen → WorldGenerator (if API key) → gameplay, with fallback to hardcoded test zone. `WorldGenerator` orchestrates: prompt → WorldSeed (Opus) → ZoneSpec (Sonnet) → ZoneBuilder → tile data. `ZoneBuilder` is in engine package — accepts palettes/templates as params (no AI import dependency). *(Agent: quick-bobcat, Re: 20260212114214)*
+- **[2026-02-12]** Gotcha: OpenTUI `TextRenderable` uses `fg` property for text color, NOT `color`. TextOptions extends TextBufferOptions which has `fg`/`bg`. *(Agent: quick-bobcat, Re: 20260212114214)*
 
 ## In Progress
 
 ## Completed (Pending Merge)
 - **20260212114214 - AI World Generation** | Branch: `main` | Completed: 2026-02-12
-- **20260212114217 - Persistence** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -27,13 +28,14 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `calm-falcon` | Task: 20260212114212 (merge) | Queued: 2026-02-12 13:10:43 EST
+1. `quick-bobcat` | Task: 20260212114214 | Queued: 2026-02-12 13:17:09 EST
 
 ## Ready
 
 - **20260212114216 - Event System** — World ticker, event evaluation, world clock | Touches: `packages/engine/src/event/`
 - **20260212125925 - DD: Multi-Zone World & Zone Transitions** — Design doc for lazy zone generation, preloading, memory management, zone transitions | Touches: `.jraad/docs/`
 - **20260212125926 - DD: Animation & Atmosphere System** — Design doc for AnimationManager, ambient animations, time-of-day palettes | Touches: `.jraad/docs/`
+- **20260212114213 - AI Dialogue** — Dialogue panel, AI-driven conversations, response streaming | Touches: `packages/renderer/src/ui/DialoguePanel.ts, apps/game/src/`
 
 ## Up Next
 - **20260212125927 - Mini-Map Rendering** — Blocked-By: 20260212125925
