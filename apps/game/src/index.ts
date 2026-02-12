@@ -381,7 +381,6 @@ function startGameplay(
   renderer.root.add(fb);
   updateMovementContext();
   renderFrame();
-  renderer.auto();
 }
 
 // ── Main ─────────────────────────────────────────────────────
@@ -393,6 +392,7 @@ async function main() {
     targetFps: 15,
     maxFps: 30,
   });
+  renderer.auto();
 
   // Load settings
   const settingsManager = new SettingsManager();
