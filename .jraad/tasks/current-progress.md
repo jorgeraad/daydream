@@ -19,8 +19,6 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **20260212114217 - Persistence** | Touches: `apps/game/src/SaveManager.ts, apps/game/src/config.ts` | Branch: `main` | Agent: neat-lynx
 
 ## Completed (Pending Merge)
-- **20260212114212 - Character Rendering & Interaction** | Branch: `main` | Completed: 2026-02-12
-- **20260212114215 - Chronicle & Memory** | Branch: `main` | Completed: 2026-02-12
 - **20260212114211 - TUI Layout** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
@@ -29,13 +27,16 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `calm-falcon` | Task: 20260212114212 | Queued: 2026-02-12 12:58:18 EST
+1. `bold-falcon` | Task: 20260212114211 | Queued: 2026-02-12 12:58:57 EST
 
 ## Ready
 
-_No tasks ready — all unblocked tasks are in progress._
+- **20260212114216 - Event System** — World ticker, event evaluation, world clock | Touches: `packages/engine/src/event/`
+- **20260212125925 - DD: Multi-Zone World & Zone Transitions** — Design doc for lazy zone generation, preloading, memory management, zone transitions | Touches: `.jraad/docs/`
+- **20260212125926 - DD: Animation & Atmosphere System** — Design doc for AnimationManager, ambient animations, time-of-day palettes | Touches: `.jraad/docs/`
 
 ## Up Next
 - **20260212114213 - AI Dialogue** — Blocked-By: 20260212114211, 20260212114212
-- **20260212114216 - Event System** — Blocked-By: 20260212114215
-- **20260212114218 - Polish** — Blocked-By: 20260212114213, 20260212114214, 20260212114216, 20260212114217
+- **20260212125927 - Mini-Map Rendering** — Blocked-By: 20260212125925
+- **20260212125928 - Loading Animations** — Blocked-By: 20260212114214
+- **20260212125929 - E2E Smoke Test** — Blocked-By: 20260212114213, 20260212114216, 20260212125925, 20260212125926

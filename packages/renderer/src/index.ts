@@ -18,3 +18,8 @@ export { forestPalette, desertPalette, townPalette, biomePalettes } from "./pale
 export { houseTpl, shopTpl, tavernTpl, wellTpl, wallTpl, buildingTemplates } from "./palettes/buildings.ts";
 export { objectGlyphs } from "./palettes/objects.ts";
 export { characterPresets } from "./palettes/characters.ts";
+
+export { ContextPanel } from "./ui/ContextPanel.ts";
+export type { ContextPanelData } from "./ui/ContextPanel.ts";
+export { MiniMap } from "./ui/MiniMap.ts";
+export { NarrativeBar } from "./ui/NarrativeBar.ts";
