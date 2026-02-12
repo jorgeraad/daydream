@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 11:42:20 EST |
-| **Last Modified**  | 2026-02-12 12:54:30 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 12:58:07 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | quick-coyote |
 | **Blocked-By**     | 20260212114208, 20260212114209 |
@@ -54,3 +54,6 @@ Starting implementation on branch `main`. Dependencies merged: engine core types
 
 ### 2026-02-12 12:54:30 EST
 Task completed. All 14 acceptance criteria met. Implemented: Chronicle with full narrative thread lifecycle (addThread, updateThreadTension, resolveThread), CompressionProvider interface for AI-powered compression with summary rotation, NarrativeThread helper module, CharacterMemory class wrapping CharacterMemoryData with budget-aware memory retrieval and relationship tracking, ContextManager.updateFromChronicle() convenience method. 63 new tests (15 Chronicle, 6 NarrativeThread, 18 CharacterMemory, 5 ContextManager, 4 compression integration), all passing. Exported new modules from engine index.
+
+### 2026-02-12 12:58:07 EST
+Branch merged to the main branch.
