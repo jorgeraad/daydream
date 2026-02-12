@@ -3,6 +3,7 @@ import {
   BoxRenderable,
   TextRenderable,
 } from "@opentui/core";
+import { GameInput } from "@daydream/renderer";
 
 const TITLE_ART = `
      ╔═══════════════════════════════╗
@@ -12,7 +13,7 @@ const TITLE_ART = `
 
 const SUBTITLE = "AI-generated worlds from your imagination";
 const PROMPT_LABEL = "Where would you like to go?";
-const HINT = "Type your world prompt and press Enter\n[s] Settings";
+const HINT = "Type your world prompt and press Enter\n[Esc] Settings";
 
 export type TitleScreenResult =
   | { type: "prompt"; value: string }
@@ -20,8 +21,7 @@ export type TitleScreenResult =
 
 export class TitleScreen {
   private container: BoxRenderable;
-  private inputText: TextRenderable;
-  private buffer = "";
+  private input: GameInput;
   private resolve: ((value: TitleScreenResult) => void) | null = null;
 
   constructor(private renderer: CliRenderer) {
@@ -60,25 +60,23 @@ export class TitleScreen {
     });
     this.container.add(promptLabel);
 
-    // Input box
-    const inputBox = new BoxRenderable(renderer, {
-      id: "input-box",
+    // Input — replaces manual inputBox + inputText + buffer
+    this.input = new GameInput(renderer, {
+      id: "title-input",
       width: 60,
-      height: 3,
-      border: true,
-      borderStyle: "rounded",
-      borderColor: "#7aa2f7",
-      paddingX: 1,
-      justifyContent: "center",
+      placeholder: "Describe your world...",
+      onSubmit: (value) => {
+        if (value.trim().length > 0) {
+          this.resolve?.({ type: "prompt", value: value.trim() });
+          this.resolve = null;
+        }
+      },
+      onCancel: () => {
+        this.resolve?.({ type: "settings" });
+        this.resolve = null;
+      },
     });
-
-    this.inputText = new TextRenderable(renderer, {
-      id: "input-text",
-      content: "█",
-      fg: "#c0caf5",
-    });
-    inputBox.add(this.inputText);
-    this.container.add(inputBox);
+    this.container.add(this.input.container);
 
     // Hint
     const hint = new TextRenderable(renderer, {
@@ -91,15 +89,10 @@ export class TitleScreen {
 
   /** Show the title screen and wait for the user to enter a prompt or open settings. */
   async show(): Promise<TitleScreenResult> {
-    this.buffer = "";
-    this.inputText.content = "█";
+    this.input.value = "";
     this.renderer.root.add(this.container);
 
-    // Set up keyboard handler
-    this.container.focusable = true;
-    this.container.focus();
-    this.container.onKeyDown = (key) => this.handleKey(key);
-
+    this.input.focus();
     this.renderer.requestRender();
 
     return new Promise<TitleScreenResult>((resolve) => {
@@ -109,29 +102,7 @@ export class TitleScreen {
 
   /** Remove the title screen from the renderer. */
   destroy(): void {
+    this.input.destroy();
     this.renderer.root.remove("title-screen");
-  }
-
-  private handleKey(key: { name: string; char?: string; shift?: boolean }): void {
-    if (key.name === "Return" || key.name === "Enter") {
-      if (this.buffer.trim().length > 0) {
-        this.resolve?.({ type: "prompt", value: this.buffer.trim() });
-        this.resolve = null;
-      }
-      return;
-    }
-
-    if (key.name === "Backspace" || key.name === "Delete") {
-      this.buffer = this.buffer.slice(0, -1);
-    } else if (key.char === "s" && this.buffer.length === 0) {
-      this.resolve?.({ type: "settings" });
-      this.resolve = null;
-      return;
-    } else if (key.char && key.char.length === 1 && key.name !== "Escape") {
-      this.buffer += key.char;
-    }
-
-    this.inputText.content = this.buffer + "█";
-    this.renderer.requestRender();
   }
 }

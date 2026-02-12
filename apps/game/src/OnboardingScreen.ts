@@ -3,6 +3,7 @@ import {
   BoxRenderable,
   TextRenderable,
 } from "@opentui/core";
+import { MaskedInput } from "@daydream/renderer";
 import { SettingsManager } from "./settings/SettingsManager.ts";
 
 const WELCOME_ART = `
@@ -23,12 +24,12 @@ type Phase = "intro" | "input" | "saved";
 export class OnboardingScreen {
   private container: BoxRenderable;
   private bodyText: TextRenderable;
-  private inputBox: BoxRenderable;
-  private inputText: TextRenderable;
+  private inputPlaceholder: BoxRenderable;
+  private savedKeyText: TextRenderable;
   private hintText: TextRenderable;
   private errorText: TextRenderable;
   private phase: Phase = "intro";
-  private buffer = "";
+  private maskedInput: MaskedInput | null = null;
   private resolve: (() => void) | null = null;
 
   constructor(
@@ -69,25 +70,25 @@ export class OnboardingScreen {
     });
     this.container.add(urlText);
 
-    // Input box (hidden during intro phase via empty content)
-    this.inputBox = new BoxRenderable(renderer, {
+    // Placeholder box for intro/saved phases (shows dimmed border in intro, saved key in saved)
+    this.inputPlaceholder = new BoxRenderable(renderer, {
       id: "onboarding-input-box",
       width: 60,
       height: 3,
       border: true,
       borderStyle: "rounded",
-      borderColor: "#7aa2f7",
+      borderColor: "#565f89",
       paddingX: 1,
       justifyContent: "center",
     });
 
-    this.inputText = new TextRenderable(renderer, {
-      id: "onboarding-input-text",
+    this.savedKeyText = new TextRenderable(renderer, {
+      id: "onboarding-saved-key",
       content: "",
       fg: "#c0caf5",
     });
-    this.inputBox.add(this.inputText);
-    this.container.add(this.inputBox);
+    this.inputPlaceholder.add(this.savedKeyText);
+    this.container.add(this.inputPlaceholder);
 
     // Error text (shown on validation failure)
     this.errorText = new TextRenderable(renderer, {
@@ -109,7 +110,6 @@ export class OnboardingScreen {
   /** Show the onboarding flow. Resolves when the user has saved an API key. */
   async show(): Promise<void> {
     this.phase = "intro";
-    this.buffer = "";
     this.updateDisplay();
 
     this.renderer.root.add(this.container);
@@ -124,31 +124,37 @@ export class OnboardingScreen {
   }
 
   destroy(): void {
+    if (this.maskedInput) {
+      this.maskedInput.destroy();
+      this.maskedInput = null;
+    }
     this.renderer.root.remove("onboarding-screen");
   }
 
   private updateDisplay(): void {
     switch (this.phase) {
       case "intro":
-        this.inputText.content = "";
-        this.inputBox.borderColor = "#565f89";
+        this.inputPlaceholder.visible = true;
+        this.savedKeyText.content = "";
+        this.inputPlaceholder.borderColor = "#565f89";
         this.errorText.content = "";
         this.hintText.content = "\n  Press Enter to set up your API key";
         break;
 
       case "input":
-        this.inputText.content = this.buffer.length > 0
-          ? "*".repeat(this.buffer.length) + "█"
-          : "█";
-        this.inputBox.borderColor = "#7aa2f7";
+        // Hide the placeholder box — MaskedInput provides its own container
+        this.inputPlaceholder.visible = false;
+        this.errorText.content = "";
         this.hintText.content = "\n  Paste your API key and press Enter";
         break;
 
       case "saved":
-        this.inputText.content = SettingsManager.maskApiKey(
+        // Show the placeholder box again with the saved key
+        this.inputPlaceholder.visible = true;
+        this.savedKeyText.content = SettingsManager.maskApiKey(
           this.settingsManager.getApiKey("anthropic")!,
         );
-        this.inputBox.borderColor = "#9ece6a";
+        this.inputPlaceholder.borderColor = "#9ece6a";
         this.errorText.content = "";
         this.hintText.content = "\n  Key saved! Press Enter to start dreaming...";
         break;
@@ -157,21 +163,20 @@ export class OnboardingScreen {
     this.renderer.requestRender();
   }
 
-  private handleKey(key: { name: string; char?: string; shift?: boolean }): void {
+  private handleKey(key: { name: string; raw?: string; shift?: boolean }): void {
     switch (this.phase) {
       case "intro":
-        if (key.name === "Return" || key.name === "Enter") {
-          this.phase = "input";
-          this.updateDisplay();
+        if (key.name === "return") {
+          this.transitionToInput();
         }
         break;
 
       case "input":
-        this.handleInputKey(key);
+        // MaskedInput handles all input in this phase — container should not interfere
         break;
 
       case "saved":
-        if (key.name === "Return" || key.name === "Enter") {
+        if (key.name === "return") {
           this.resolve?.();
           this.resolve = null;
         }
@@ -179,33 +184,57 @@ export class OnboardingScreen {
     }
   }
 
-  private handleInputKey(key: { name: string; char?: string }): void {
-    if (key.name === "Return" || key.name === "Enter") {
-      const trimmed = this.buffer.trim();
-      if (trimmed.length === 0) {
-        this.errorText.content = "\n  Please enter an API key";
-        this.renderer.requestRender();
-        return;
-      }
-      if (!trimmed.startsWith("sk-")) {
-        this.errorText.content = "\n  That doesn't look like an Anthropic API key (should start with sk-)";
-        this.renderer.requestRender();
-        return;
-      }
-      // Save the key
-      this.settingsManager.setApiKey("anthropic", trimmed);
-      this.phase = "saved";
-      this.updateDisplay();
-      return;
-    }
-
-    if (key.name === "Backspace" || key.name === "Delete") {
-      this.buffer = this.buffer.slice(0, -1);
-    } else if (key.char && key.char.length === 1 && key.name !== "Escape") {
-      this.buffer += key.char;
-    }
-
-    this.errorText.content = "";
+  private transitionToInput(): void {
+    this.phase = "input";
     this.updateDisplay();
+
+    // Create the MaskedInput and insert it where the placeholder was
+    this.maskedInput = new MaskedInput(this.renderer, {
+      id: "onboarding-masked-input",
+      width: 60,
+      placeholder: "sk-ant-...",
+      onSubmit: (value) => {
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+          this.errorText.content = "\n  Please enter an API key";
+          this.renderer.requestRender();
+          return;
+        }
+        if (!trimmed.startsWith("sk-")) {
+          this.errorText.content = "\n  That doesn't look like an Anthropic API key (should start with sk-)";
+          this.renderer.requestRender();
+          return;
+        }
+        // Save the key and transition to saved phase
+        this.settingsManager.setApiKey("anthropic", trimmed);
+        this.transitionToSaved();
+      },
+      onChange: () => {
+        // Clear error on any edit
+        this.errorText.content = "";
+        this.renderer.requestRender();
+      },
+    });
+
+    // Insert the MaskedInput container before the error text
+    // (it replaces the hidden inputPlaceholder visually)
+    this.container.insertBefore(this.maskedInput.container, this.errorText);
+    this.maskedInput.focus();
+    this.renderer.requestRender();
+  }
+
+  private transitionToSaved(): void {
+    // Remove and destroy the MaskedInput
+    if (this.maskedInput) {
+      this.container.remove("onboarding-masked-input");
+      this.maskedInput.destroy();
+      this.maskedInput = null;
+    }
+
+    this.phase = "saved";
+    this.updateDisplay();
+
+    // Re-focus the container for Enter to continue
+    this.container.focus();
   }
 }
