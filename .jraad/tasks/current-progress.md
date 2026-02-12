@@ -14,11 +14,19 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 ## In Progress
 
 ## Completed (Pending Merge)
+- **20260212114208 - Engine Core Types & Data Models** | Branch: `main` | Completed: 2026-02-12
+- **20260212114209 - AI Client & Prompt Framework** | Branch: `main` | Completed: 2026-02-12
+- **20260212114210 - Tile Renderer & Palettes** | Branch: `main` | Completed: 2026-02-12
+
+## Commit Queue
+
+> Agents waiting to commit. Only the agent at position 1 may stage and commit.
+> Add yourself to the END of the list. Remove yourself after committing.
+> See `/task-commit` for the full procedure.
+
+1. `slim-finch` | Task: 20260212114210 | Queued: 2026-02-12 12:18:43 EST
 
 ## Ready
-- **20260212114208 - Engine Core Types & Data Models** — Pure TS types/interfaces for Zone, Character, Chronicle, Events, WorldState | Touches: `packages/engine/src/` | Blocked-By: none (scaffolding merged)
-- **20260212114209 - AI Client & Prompt Framework** — Claude SDK wrapper, prompts, tool schemas, context management | Touches: `packages/ai/src/` | Blocked-By: none (scaffolding merged)
-- **20260212114210 - Tile Renderer & Palettes** — FrameBuffer tile rendering, biome palettes, player movement, collision | Touches: `packages/renderer/src/, apps/game/src/` | Blocked-By: none (scaffolding merged)
 
 ## Up Next
 - **20260212114211 - TUI Layout** — Blocked-By: 20260212114210
