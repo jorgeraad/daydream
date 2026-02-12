@@ -24,3 +24,5 @@ export { ContextPanel } from "./ui/ContextPanel.ts";
 export type { ContextPanelData } from "./ui/ContextPanel.ts";
 export { MiniMap } from "./ui/MiniMap.ts";
 export { NarrativeBar } from "./ui/NarrativeBar.ts";
+export { DialoguePanel } from "./ui/DialoguePanel.ts";
+export type { DialogueOption, DialogueSelection } from "./ui/DialoguePanel.ts";

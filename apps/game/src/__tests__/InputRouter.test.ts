@@ -164,11 +164,46 @@ describe("InputRouter", () => {
   });
 
   describe("dialogue mode", () => {
-    test("escape returns to exploration mode", () => {
-      const router = new InputRouter(new EventBus());
+    test("setDialogueHandler registers handler that receives keys", () => {
+      const eventBus = new EventBus();
+      const router = new InputRouter(eventBus);
+
+      const received: string[] = [];
+      router.setDialogueHandler((key) => received.push(key.name));
+
       router.setMode("dialogue");
+      router.handleKey({ name: "a" });
+      router.handleKey({ name: "Enter" });
       router.handleKey({ name: "escape" });
-      expect(router.mode).toBe("exploration");
+
+      expect(received).toEqual(["a", "Enter", "escape"]);
+    });
+
+    test("setDialogueHandler(null) clears handler", () => {
+      const eventBus = new EventBus();
+      const router = new InputRouter(eventBus);
+
+      const received: string[] = [];
+      router.setDialogueHandler((key) => received.push(key.name));
+      router.setDialogueHandler(null);
+
+      router.setMode("dialogue");
+      router.handleKey({ name: "a" });
+
+      expect(received).toEqual([]);
+    });
+
+    test("keys are not forwarded in non-dialogue modes", () => {
+      const eventBus = new EventBus();
+      const router = new InputRouter(eventBus);
+
+      const received: string[] = [];
+      router.setDialogueHandler((key) => received.push(key.name));
+
+      // In exploration mode, dialogue handler should not receive keys
+      router.handleKey({ name: "a" });
+      // 'a' in exploration mode triggers movement, not dialogue handler
+      expect(received).toEqual([]);
     });
   });
 

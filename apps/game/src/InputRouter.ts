@@ -24,6 +24,7 @@ export class InputRouter {
   private _mode: GameMode = "exploration";
   private eventBus: EventBus;
   private movementCtx: MovementContext | null = null;
+  private dialogueHandler: ((key: KeyEvent) => void) | null = null;
 
   constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -42,6 +43,10 @@ export class InputRouter {
 
   setMovementContext(ctx: MovementContext): void {
     this.movementCtx = ctx;
+  }
+
+  setDialogueHandler(handler: ((key: KeyEvent) => void) | null): void {
+    this.dialogueHandler = handler;
   }
 
   handleKey(key: KeyEvent): void {
@@ -91,11 +96,8 @@ export class InputRouter {
   }
 
   private handleDialogue(key: KeyEvent): void {
-    // Dialogue mode is stubbed for now — will be implemented in AI Dialogue task.
-    // Escape exits back to exploration.
-    if (key.name === "escape") {
-      this.setMode("exploration");
-    }
+    // Delegate to the registered dialogue handler (DialoguePanel manages Escape logic)
+    this.dialogueHandler?.(key);
   }
 
   private handleMenu(key: KeyEvent): void {

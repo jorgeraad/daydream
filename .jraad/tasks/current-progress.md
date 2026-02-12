@@ -30,14 +30,15 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `settings` | 1 | 1 | Complete |
 | `gameplay` | 2 | 3 | In Progress |
 | `world-generation` | 1 | 3 | In Progress |
-| `animation-atmosphere` | 1 | 2 | Ready |
-| `audio` | 0 | 1 | In Progress |
+| `animation-atmosphere` | 1 | 6 | Ready |
+| `audio` | 0 | 7 | In Progress |
 
 ## In Progress
 - **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/design-docs/20260212143327-multi-zone-world.md` | Branch: `main` | Agent: swift-kestrel
 - **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/design-docs/20260212143111-music-sound-effects.md` | Branch: `main` | Agent: deep-finch
 
 ## Completed (Pending Merge)
+- **20260212114213 - AI Dialogue** | Branch: `main` | Completed: 2026-02-12
 - **20260212142949 - Fix renderer not starting before screen input** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
@@ -50,9 +51,18 @@ _Empty — no agents waiting to commit._
 
 ## Ready
 
-- **20260212114213 - AI Dialogue** — Dialogue panel, AI-driven conversations, response streaming | Touches: `packages/renderer/src/ui/DialoguePanel.ts, apps/game/src/`
 - **20260212125928 - Loading Animations** — Enhanced loading screen animations | Touches: `packages/renderer/src/ui/LoadingScreen.ts`
+- **20260212145509 - Animation Types & Manager Core** — Animation interface, CellOverride, AnimationManager with requestLive/dropLive lifecycle | Touches: `packages/renderer/src/animation/`
 
 ## Up Next
+- **20260212145506 - Audio Package Scaffolding & Playback** — Blocked-By: 20260212133127
+- **20260212145507 - Chiptune Synthesis Engine** — Blocked-By: 20260212145506
+- **20260212145508 - Sound Effects System** — Blocked-By: 20260212145506
+- **20260212145509 - AI Music Generation** — Blocked-By: 20260212145507
+- **20260212145510 - AudioManager & Game Integration** — Blocked-By: 20260212145507, 20260212145508, 20260212145509
+- **20260212145511 - Audio Settings & UI** — Blocked-By: 20260212145510
+- **20260212145529 - Tile & Character Animations** — Blocked-By: 20260212145509
+- **20260212145546 - Time-of-Day Atmosphere Overlay** — Blocked-By: 20260212145509
+- **20260212145602 - TileRenderer Animation Integration & Game Wiring** — Blocked-By: 20260212145509, 20260212145529, 20260212145546
 - **20260212125927 - Mini-Map Rendering** — Blocked-By: 20260212125925
 - **20260212125929 - E2E Smoke Test** — Blocked-By: 20260212114213, 20260212114216, 20260212125925, 20260212125926
