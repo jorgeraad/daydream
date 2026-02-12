@@ -26,3 +26,5 @@ export { MiniMap } from "./ui/MiniMap.ts";
 export { NarrativeBar } from "./ui/NarrativeBar.ts";
 export { DialoguePanel } from "./ui/DialoguePanel.ts";
 export type { DialogueOption, DialogueSelection } from "./ui/DialoguePanel.ts";
+export { GameInput } from "./ui/GameInput.ts";
+export type { GameInputConfig } from "./ui/GameInput.ts";

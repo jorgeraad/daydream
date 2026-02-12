@@ -34,12 +34,15 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `animation-atmosphere` | 1 | 6 | Ready |
 | `audio` | 0 | 7 | In Progress |
 | `logging` | 6 | 6 | Complete |
+| `text-input` | 0 | 4 | In Progress |
 
 ## In Progress
 - **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/design-docs/20260212143327-multi-zone-world.md` | Branch: `main` | Agent: swift-kestrel
 - **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/design-docs/20260212143111-music-sound-effects.md` | Branch: `main` | Agent: deep-finch
+- **20260212172319 - Build GameInput Component** | Touches: `packages/renderer/src/ui/GameInput.ts`, `packages/renderer/src/index.ts` | Branch: `main` | Agent: keen-lynx
 
 ## Completed (Pending Merge)
+
 _None — all completed tasks have been merged._
 
 ## Commit Queue
@@ -48,7 +51,7 @@ _None — all completed tasks have been merged._
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `fast-hawk` | Task: logging merge | Queued: 2026-02-12 17:14:40 EST
+_Empty — no agents waiting to commit._
 
 ## Ready
 
@@ -65,5 +68,8 @@ _None — all completed tasks have been merged._
 - **20260212145529 - Tile & Character Animations** — Blocked-By: 20260212145509
 - **20260212145546 - Time-of-Day Atmosphere Overlay** — Blocked-By: 20260212145509
 - **20260212145602 - TileRenderer Animation Integration & Game Wiring** — Blocked-By: 20260212145509, 20260212145529, 20260212145546
+- **20260212172320 - Build MaskedInput Component** — Blocked-By: 20260212172319
+- **20260212172321 - Migrate TitleScreen + OnboardingScreen** — Blocked-By: 20260212172319, 20260212172320
+- **20260212172322 - Migrate SettingsScreen + DialoguePanel** — Blocked-By: 20260212172321
 - **20260212125927 - Mini-Map Rendering** — Blocked-By: 20260212125925
 - **20260212125929 - E2E Smoke Test** — Blocked-By: 20260212114213, 20260212114216, 20260212125925, 20260212125926
