@@ -31,7 +31,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `cool-coyote` | Task: 20260212142949 | Queued: 2026-02-12 14:31:45 EST
+1. `fast-bobcat` | Task: 20260212125926 | Queued: 2026-02-12 14:33:46 EST
 
 ## Ready
 
