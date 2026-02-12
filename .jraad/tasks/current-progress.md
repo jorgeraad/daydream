@@ -40,13 +40,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/design-docs/20260212143111-music-sound-effects.md` | Branch: `main` | Agent: deep-finch
 
 ## Completed (Pending Merge)
-- **20260212142949 - Fix renderer not starting before screen input** | Branch: `main` | Completed: 2026-02-12
-- **20260212165458 - Add LogTape Dependencies & Logging Configuration** | Branch: `main` | Completed: 2026-02-12
-- **20260212165459 - SettingsManager Logging Support & UI** | Branch: `main` | Completed: 2026-02-12
-- **20260212165500 - Logging Startup Wiring** | Branch: `main` | Completed: 2026-02-12
-- **20260212165501 - AI Client Instrumentation** | Branch: `main` | Completed: 2026-02-12
-- **20260212165502 - Engine & Game Logging** | Branch: `main` | Completed: 2026-02-12
-- **20260212165503 - Logging Test Helpers** | Branch: `main` | Completed: 2026-02-12
+_None — all completed tasks have been merged._
 
 ## Commit Queue
 
@@ -54,7 +48,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `fast-hawk` | Task: logging feature (165458-165503) | Queued: 2026-02-12 17:13:08 EST
+1. `fast-hawk` | Task: logging merge | Queued: 2026-02-12 17:14:40 EST
 
 ## Ready
 
