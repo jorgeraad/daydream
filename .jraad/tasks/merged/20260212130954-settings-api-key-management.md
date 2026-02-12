@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 13:09:54 EST |
-| **Last Modified**  | 2026-02-12 13:39:16 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 13:40:39 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | calm-jackal |
 | **Blocked-By**     | 20260212114214 |
@@ -52,3 +52,6 @@ Implementation complete. All 10 acceptance criteria met, all 12 unit tests passi
 
 ### 2026-02-12 13:39:16 EST
 Added OnboardingScreen — first-run UX gate. Users without an API key see a 3-phase onboarding (intro → masked key input with `sk-` validation → saved confirmation) before reaching the title screen. index.ts now always generates via AI (test zone only as fallback on generation failure). If user deletes their key in Settings, onboarding re-triggers.
+
+### 2026-02-12 13:40:39 EST
+Branch merged to the main branch.

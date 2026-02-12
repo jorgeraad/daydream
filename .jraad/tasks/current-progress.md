@@ -21,10 +21,9 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/multi-zone-design.md` | Branch: `main` | Agent: swift-kestrel
 - **20260212125926 - DD: Animation & Atmosphere System** | Touches: `.jraad/docs/animation-atmosphere-design.md` | Branch: `main` | Agent: fast-bobcat
 - **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/music-sound-design.md` | Branch: `main` | Agent: deep-finch
-- **20260212114216 - Event System** | Touches: `packages/engine/src/event/` | Branch: `main` | Agent: light-falcon
 
 ## Completed (Pending Merge)
-- **20260212130954 - Settings & API Key Management** | Branch: `main` | Completed: 2026-02-12
+- **20260212114216 - Event System** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -32,7 +31,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `calm-jackal` | Task: 20260212130954 | Queued: 2026-02-12 13:39:51 EST
+1. `calm-jackal` | Task: 20260212130954 | Queued: 2026-02-12 13:41:15 EST
 
 ## Ready
 
