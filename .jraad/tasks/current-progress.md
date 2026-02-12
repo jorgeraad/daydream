@@ -14,9 +14,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 ## In Progress
 
 ## Completed (Pending Merge)
-- **20260212114208 - Engine Core Types & Data Models** | Branch: `main` | Completed: 2026-02-12
-- **20260212114209 - AI Client & Prompt Framework** | Branch: `main` | Completed: 2026-02-12
-- **20260212114210 - Tile Renderer & Palettes** | Branch: `main` | Completed: 2026-02-12
+- **20260212122007 - Convert Engine Core Types to Zod Schemas** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -24,16 +22,17 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `slim-finch` | Task: 20260212114210 | Queued: 2026-02-12 12:18:43 EST
+_Empty — no agents waiting to commit._
 
 ## Ready
+- **20260212114211 - TUI Layout** — Multi-panel TUI shell (viewport + side panel + narrative bar) | Touches: `packages/renderer/src/, apps/game/src/`
+- **20260212114212 - Character Rendering & Interaction** — Character presets, proximity detection, interaction trigger | Touches: `packages/renderer/src/CharacterRenderer.ts, packages/renderer/src/palettes/characters.ts, apps/game/src/InputRouter.ts`
+- **20260212114214 - AI World Generation** — Title screen prompt input, Claude generates WorldSeed and zones | Touches: `packages/engine/src/world/ZoneBuilder.ts, packages/renderer/src/ui/LoadingScreen.ts, apps/game/src/`
+- **20260212114215 - Chronicle & Memory** — Persistent world memory, character memory, chronicle compression | Touches: `packages/engine/src/chronicle/, packages/engine/src/character/CharacterMemory.ts, packages/ai/src/context.ts, packages/ai/src/prompts/compression.ts`
+- **20260212114217 - Persistence** — SQLite with bun:sqlite, SaveManager, save/load UI | Touches: `apps/game/src/SaveManager.ts, apps/game/src/config.ts`
 
 ## Up Next
-- **20260212114211 - TUI Layout** — Blocked-By: 20260212114210
-- **20260212114212 - Character Rendering & Interaction** — Blocked-By: 20260212114208, 20260212114210
-- **20260212114213 - AI Dialogue** — Blocked-By: 20260212114209, 20260212114211, 20260212114212
-- **20260212114214 - AI World Generation** — Blocked-By: 20260212114208, 20260212114209, 20260212114210
-- **20260212114215 - Chronicle & Memory** — Blocked-By: 20260212114208, 20260212114209
+- **20260212114213 - AI Dialogue** — Blocked-By: 20260212114211, 20260212114212
 - **20260212114216 - Event System** — Blocked-By: 20260212114215
-- **20260212114217 - Persistence** — Blocked-By: 20260212114208
 - **20260212114218 - Polish** — Blocked-By: 20260212114213, 20260212114214, 20260212114216, 20260212114217
+- **20260212122011 - Add Zod Validation to AI Response Parsing** — Blocked-By: 20260212122007

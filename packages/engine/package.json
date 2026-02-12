@@ -9,6 +9,9 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "dependencies": {
+    "zod": "catalog:"
+  },
   "scripts": {
     "test": "bun test"
   }
