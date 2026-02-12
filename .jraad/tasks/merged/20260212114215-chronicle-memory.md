@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | quick-coyote |
 | **Blocked-By**     | 20260212114208, 20260212114209 |
+| **Feature**        | persistence |
 | **Touches**        | packages/engine/src/chronicle/Chronicle.ts, packages/engine/src/chronicle/NarrativeThread.ts, packages/engine/src/character/CharacterMemory.ts, packages/ai/src/context.ts, packages/ai/src/prompts/compression.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

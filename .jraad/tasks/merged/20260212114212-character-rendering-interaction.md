@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | calm-falcon |
 | **Blocked-By**     | 20260212114208, 20260212114210 |
+| **Feature**        | gameplay |
 | **Touches**        | packages/renderer/src/CharacterRenderer.ts, packages/renderer/src/palettes/characters.ts, apps/game/src/InputRouter.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | calm-jackal |
 | **Blocked-By**     | 20260212114214 |
+| **Feature**        | settings |
 | **Touches**        | apps/game/src/TitleScreen.ts, apps/game/src/settings/SettingsManager.ts, apps/game/src/settings/SettingsScreen.ts, apps/game/src/OnboardingScreen.ts, apps/game/src/index.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

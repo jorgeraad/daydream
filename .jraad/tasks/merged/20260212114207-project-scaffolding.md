@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | quick-lemur |
 | **Blocked-By**     | none |
+| **Feature**        | — |
 | **Touches**        | package.json, bunfig.toml, tsconfig.base.json, tsconfig.json, .gitignore, packages/engine/package.json, packages/engine/tsconfig.json, packages/engine/src/index.ts, packages/ai/package.json, packages/ai/tsconfig.json, packages/ai/src/index.ts, packages/renderer/package.json, packages/renderer/tsconfig.json, packages/renderer/src/index.ts, apps/game/package.json, apps/game/tsconfig.json, apps/game/src/index.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

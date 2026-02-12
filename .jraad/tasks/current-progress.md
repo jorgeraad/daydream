@@ -17,8 +17,24 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **[2026-02-12]** Integration: Game flow is now TitleScreen → WorldGenerator (if API key) → gameplay, with fallback to hardcoded test zone. `WorldGenerator` orchestrates: prompt → WorldSeed (Opus) → ZoneSpec (Sonnet) → ZoneBuilder → tile data. `ZoneBuilder` is in engine package — accepts palettes/templates as params (no AI import dependency). *(Agent: quick-bobcat, Re: 20260212114214)*
 - **[2026-02-12]** Gotcha: OpenTUI `TextRenderable` uses `fg` property for text color, NOT `color`. TextOptions extends TextBufferOptions which has `fg`/`bg`. *(Agent: quick-bobcat, Re: 20260212114214)*
 
+## Feature Progress
+
+> Derived from task Feature fields. Standalone tasks (Feature: —) are not listed.
+
+| Feature | Done | Total | Status |
+|---------|------|-------|--------|
+| `engine-foundation` | 2 | 2 | Complete |
+| `ai-foundation` | 2 | 2 | Complete |
+| `rendering` | 2 | 2 | Complete |
+| `persistence` | 2 | 2 | Complete |
+| `settings` | 1 | 1 | Complete |
+| `gameplay` | 2 | 3 | In Progress |
+| `world-generation` | 1 | 3 | In Progress |
+| `animation-atmosphere` | 1 | 2 | Ready |
+| `audio` | 0 | 1 | In Progress |
+
 ## In Progress
-- **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/multi-zone-design.md` | Branch: `main` | Agent: swift-kestrel
+- **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/design-docs/20260212143327-multi-zone-world.md` | Branch: `main` | Agent: swift-kestrel
 - **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/design-docs/20260212143111-music-sound-effects.md` | Branch: `main` | Agent: deep-finch
 
 ## Completed (Pending Merge)
@@ -30,7 +46,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `fast-bobcat` | Task: 20260212125926 (merge) | Queued: 2026-02-12 14:34:27 EST
+_Empty — no agents waiting to commit._
 
 ## Ready
 

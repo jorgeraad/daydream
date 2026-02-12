@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | slim-finch |
 | **Blocked-By**     | 20260212114207 |
+| **Feature**        | rendering |
 | **Touches**        | packages/renderer/src/TileRenderer.ts, packages/renderer/src/ViewportManager.ts, packages/renderer/src/palettes/biomes.ts, packages/renderer/src/palettes/buildings.ts, packages/renderer/src/palettes/objects.ts, packages/renderer/src/types.ts, packages/renderer/src/index.ts, apps/game/src/index.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

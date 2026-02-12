@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | neat-heron |
 | **Blocked-By**     | 20260212114208 |
+| **Feature**        | engine-foundation |
 | **Touches**        | packages/engine/src/types.ts, packages/engine/src/schemas.test.ts, packages/engine/src/index.ts, package.json, packages/engine/package.json |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

@@ -8,6 +8,7 @@
 | **Branch**         | — |
 | **Agent**          | — |
 | **Blocked-By**     | 20260212114214 |
+| **Feature**        | animation-atmosphere |
 | **Touches**        | packages/renderer/src/ui/LoadingScreen.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

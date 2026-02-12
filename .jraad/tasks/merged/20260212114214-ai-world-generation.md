@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | quick-bobcat |
 | **Blocked-By**     | 20260212114208, 20260212114209, 20260212114210 |
+| **Feature**        | world-generation |
 | **Touches**        | packages/engine/src/world/ZoneBuilder.ts, packages/renderer/src/ui/LoadingScreen.ts, apps/game/src/ |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | vast-otter |
 | **Blocked-By**     | 20260212114207 |
+| **Feature**        | ai-foundation |
 | **Touches**        | packages/ai/src/client.ts, packages/ai/src/context.ts, packages/ai/src/prompts/, packages/ai/src/tools/, packages/ai/src/index.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

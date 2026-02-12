@@ -8,6 +8,7 @@
 | **Branch**         | — |
 | **Agent**          | — |
 | **Blocked-By**     | 20260212125925 |
+| **Feature**        | world-generation |
 | **Touches**        | packages/renderer/src/ui/MiniMap.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

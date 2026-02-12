@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | bold-cedar |
 | **Blocked-By**     | 20260212114207 |
+| **Feature**        | engine-foundation |
 | **Touches**        | packages/engine/src/types.ts, packages/engine/src/world/Zone.ts, packages/engine/src/world/WorldState.ts, packages/engine/src/world/BiomeSystem.ts, packages/engine/src/character/Character.ts, packages/engine/src/chronicle/Chronicle.ts, packages/engine/src/event/EventSystem.ts, packages/engine/src/index.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

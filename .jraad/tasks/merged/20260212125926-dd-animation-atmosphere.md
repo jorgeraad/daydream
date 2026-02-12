@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | fast-bobcat |
 | **Blocked-By**     | none |
+| **Feature**        | animation-atmosphere |
 | **Touches**        | .jraad/docs/design-docs/20260212133443-animation-atmosphere.md |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 

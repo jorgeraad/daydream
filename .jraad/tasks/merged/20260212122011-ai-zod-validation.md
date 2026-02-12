@@ -8,6 +8,7 @@
 | **Branch**         | main |
 | **Agent**          | neat-lynx |
 | **Blocked-By**     | 20260212122007, 20260212114209 |
+| **Feature**        | ai-foundation |
 | **Touches**        | packages/ai/src/tools/, packages/ai/src/__tests__/, packages/ai/package.json, packages/ai/src/index.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
 
