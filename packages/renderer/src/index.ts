@@ -11,8 +11,10 @@ export type {
 } from "./types.ts";
 
 export { TileRenderer, isCollision } from "./TileRenderer.ts";
+export { CharacterRenderer, findNearbyCharacters, findAdjacentCharacters, isCharacterAt } from "./CharacterRenderer.ts";
 export { ViewportManager } from "./ViewportManager.ts";
 
 export { forestPalette, desertPalette, townPalette, biomePalettes } from "./palettes/biomes.ts";
 export { houseTpl, shopTpl, tavernTpl, wellTpl, wallTpl, buildingTemplates } from "./palettes/buildings.ts";
 export { objectGlyphs } from "./palettes/objects.ts";
+export { characterPresets } from "./palettes/characters.ts";

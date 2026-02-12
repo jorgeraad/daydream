@@ -12,15 +12,16 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **[2026-02-12]** [persistent] Build: Bun catalogs require `workspaces` object format (not array). tsconfig uses `emitDeclarationOnly` for project references. *(Agent: quick-lemur, Re: 20260212114207)*
 - **[2026-02-12]** [persistent] Pattern: AI tool schemas are now Zod-derived. Use `createToolDef(name, desc, zodSchema)` for new tools and `validateToolResponse(toolUse, name, schema)` for parsing. See `packages/ai/src/tools/schema-utils.ts`. *(Agent: neat-lynx, Re: 20260212122011)*
 - **[2026-02-12]** Coordination: 3 tasks in parallel on `main` — TUI Layout (bold-falcon), Character Rendering, AI World Gen (quick-bobcat). All touch `apps/game/src/` but different files. *(Agent: quick-bobcat)*
+- **[2026-02-12]** Integration: GameShell (`apps/game/src/GameShell.ts`) is ready but not wired into `index.ts`. Whoever integrates should use `new GameShell(renderer, zone, x, y)` and call `shell.start()`. It handles layout, input, viewport resize. *(Agent: bold-falcon, Re: 20260212114211)*
 
 ## In Progress
-- **20260212114211 - TUI Layout** | Touches: `packages/renderer/src/ui/, apps/game/src/GameShell.ts` | Branch: `main` | Agent: bold-falcon
 - **20260212114214 - AI World Generation** | Touches: `packages/engine/src/world/ZoneBuilder.ts, packages/renderer/src/ui/LoadingScreen.ts, apps/game/src/` | Branch: `main` | Agent: quick-bobcat
 - **20260212114217 - Persistence** | Touches: `apps/game/src/SaveManager.ts, apps/game/src/config.ts` | Branch: `main` | Agent: neat-lynx
 
 ## Completed (Pending Merge)
 - **20260212114212 - Character Rendering & Interaction** | Branch: `main` | Completed: 2026-02-12
 - **20260212114215 - Chronicle & Memory** | Branch: `main` | Completed: 2026-02-12
+- **20260212114211 - TUI Layout** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -28,7 +29,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `quick-coyote` | Task: 20260212114215 | Queued: 2026-02-12 12:56:57 EST
+1. `calm-falcon` | Task: 20260212114212 | Queued: 2026-02-12 12:58:18 EST
 
 ## Ready
 
