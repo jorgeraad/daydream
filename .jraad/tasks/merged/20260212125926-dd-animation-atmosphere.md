@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 12:59:26 EST |
-| **Last Modified**  | 2026-02-12 13:43:07 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 14:34:27 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | fast-bobcat |
 | **Blocked-By**     | none |
@@ -50,3 +50,6 @@ Starting implementation on branch `main`. No blockers. No Touches overlap with i
 
 ### 2026-02-12 13:43:07 EST
 Design doc completed and approved. Created `.jraad/docs/design-docs/20260212133443-animation-atmosphere.md` with full coverage: AnimationManager API (render-time override pattern, not tile mutation), WaterShimmer (600ms frames, position-based phase offset), TorchFlicker (200ms frames, dim jitter), IdleAnimation (1500ms character frame cycling), TimeOfDayOverlay (RGB multiply+add color transform with 30s ease-in-out transitions), TileRenderer integration via AnimationState struct, performance budget (200 concurrent tile animations, <5ms/frame overhead), and 10-task implementation plan with parallelization graph. Three appendices document key decisions: overrides vs mutation, custom manager vs OpenTUI Timeline, RGB transform vs HSL.
+
+### 2026-02-12 14:34:27 EST
+Branch merged to the main branch.
