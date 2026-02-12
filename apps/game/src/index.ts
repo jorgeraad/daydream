@@ -9,18 +9,21 @@ import {
   isCollision,
   isCharacterAt,
   LoadingScreen,
+  NarrativeBar,
+  DialoguePanel,
   forestPalette,
   buildingTemplates,
   objectGlyphs,
   characterPresets,
   biomePalettes,
 } from "@daydream/renderer";
-import { EventBus } from "@daydream/engine";
+import { EventBus, WorldState } from "@daydream/engine";
 import type { Character } from "@daydream/engine";
 import type { ZoneData, TileCell, TileLayer } from "@daydream/renderer";
 import type { BuildingVisual, ObjectVisual, ZoneBuildResult } from "@daydream/engine";
-import { AIClient } from "@daydream/ai";
+import { AIClient, ContextManager } from "@daydream/ai";
 import { InputRouter } from "./InputRouter.ts";
+import { DialogueManager } from "./DialogueManager.ts";
 import { TitleScreen } from "./TitleScreen.ts";
 import type { TitleScreenResult } from "./TitleScreen.ts";
 import { WorldGenerator, type ZoneCharacter } from "./WorldGenerator.ts";
@@ -312,26 +315,23 @@ function buildTestCharacters(zone: ZoneData): Character[] {
 
 // ── Gameplay ─────────────────────────────────────────────────
 
+const BOTTOM_BAR_HEIGHT = 10;
+
 function startGameplay(
   renderer: Awaited<ReturnType<typeof createCliRenderer>>,
   zone: ZoneData,
   characters: Character[],
   playerX: number,
   playerY: number,
+  aiClient?: AIClient,
 ): void {
   const eventBus = new EventBus();
   const inputRouter = new InputRouter(eventBus);
 
-  eventBus.on("character:interact", ({ characterId }) => {
-    const char = characters.find((c) => c.id === characterId);
-    if (char) {
-      // eslint-disable-next-line no-console
-      console.log(`\x1b[33m[Interact] ${char.identity.name}: "Hello, traveler!"\x1b[0m`);
-    }
-  });
-
+  // Layout: viewport takes everything except bottom bar
   const viewW = renderer.terminalWidth;
-  const viewH = renderer.terminalHeight;
+  const viewH = renderer.terminalHeight - BOTTOM_BAR_HEIGHT;
+
   const viewport = new ViewportManager(viewW, viewH);
 
   let px = playerX;
@@ -352,6 +352,81 @@ function startGameplay(
   const tileRenderer = new TileRenderer(fb.frameBuffer);
   const charRenderer = new CharacterRenderer(fb.frameBuffer);
 
+  // Bottom bar: narrative during exploration, dialogue panel during conversation
+  const narrativeBar = new NarrativeBar(renderer);
+  const dialoguePanel = new DialoguePanel(renderer);
+
+  // Bootstrap WorldState for dialogue and chronicle
+  const worldState = new WorldState({
+    worldId: "world_" + Date.now(),
+    worldSeed: {
+      originalPrompt: "",
+      setting: { name: "Unknown", type: "wilderness", era: "medieval", tone: "mysterious", description: "" },
+      biomeMap: {
+        center: {
+          type: "forest",
+          terrain: { primary: "grass", secondary: "dirt", features: [] },
+          palette: {
+            ground: { chars: ["."], fg: ["#4a7a4a"], bg: "#1a2a1a" },
+            vegetation: {},
+          },
+          density: { vegetation: 0.5, structures: 0.1, characters: 0.05 },
+          ambient: { lighting: "natural" },
+        },
+        distribution: { type: "single", seed: 0, biomes: { forest: 1 } },
+      },
+      initialNarrative: { hooks: [], mainTension: "", atmosphere: "" },
+      worldRules: { hasMagic: false, techLevel: "medieval", economy: "barter", dangers: [], customs: [] },
+    },
+    createdAt: Date.now(),
+    player: {
+      position: { zone: zone.id, x: px, y: py },
+      facing: "down",
+      inventory: [],
+      journal: { entries: [], knownCharacters: [], discoveredZones: [zone.id], activeQuests: [] },
+      stats: { totalPlayTime: 0, conversationsHad: 0, zonesExplored: 1, daysSurvived: 0 },
+    },
+    activeZoneId: zone.id,
+  });
+
+  // Register characters in WorldState
+  for (const char of characters) {
+    worldState.characters.set(char.id, char);
+  }
+
+  // Wire up DialogueManager if AI client is available
+  let dialogueManager: DialogueManager | null = null;
+  if (aiClient) {
+    const contextManager = new ContextManager();
+    dialogueManager = new DialogueManager({
+      aiClient,
+      contextManager,
+      worldState,
+      eventBus,
+      panel: dialoguePanel,
+      inputRouter,
+    });
+  }
+
+  // Character interaction → start dialogue
+  eventBus.on("character:interact", ({ characterId }) => {
+    if (dialogueManager) {
+      dialogueManager.startConversation(characterId);
+    }
+  });
+
+  // Mode changes → swap bottom bar components
+  eventBus.on("mode:changed", ({ from, to }) => {
+    if (to === "dialogue") {
+      renderer.root.remove("narrative-bar");
+      renderer.root.add(dialoguePanel.container);
+    } else if (from === "dialogue") {
+      renderer.root.remove("dialogue-panel");
+      renderer.root.add(narrativeBar.container);
+    }
+    renderer.requestRender();
+  });
+
   function updateMovementContext() {
     inputRouter.setMovementContext({
       playerX: px,
@@ -363,6 +438,9 @@ function startGameplay(
         if (!isCollision(zone, nx, ny) && !isCharacterAt(characters, nx, ny)) {
           px = nx;
           py = ny;
+          // Keep WorldState player position in sync
+          worldState.player.position.x = px;
+          worldState.player.position.y = py;
           updateMovementContext();
           renderFrame();
         }
@@ -379,6 +457,7 @@ function startGameplay(
   }
 
   renderer.root.add(fb);
+  renderer.root.add(narrativeBar.container);
   updateMovementContext();
   renderFrame();
 }
@@ -389,10 +468,11 @@ async function main() {
   const renderer = await createCliRenderer({
     exitOnCtrlC: true,
     useAlternateScreen: true,
+    useMouse: false,
     targetFps: 15,
     maxFps: 30,
   });
-  renderer.auto();
+  renderer.start();
 
   // Load settings
   const settingsManager = new SettingsManager();
@@ -436,9 +516,10 @@ async function main() {
   let characters: Character[];
   let spawnX: number;
   let spawnY: number;
+  let aiClient: AIClient | undefined;
 
   try {
-    const aiClient = new AIClient({ apiKey: settingsManager.getApiKey("anthropic") });
+    aiClient = new AIClient({ apiKey: settingsManager.getApiKey("anthropic") });
     const generator = new WorldGenerator(
       aiClient,
       toBuildingVisuals(),
@@ -477,7 +558,7 @@ async function main() {
     spawnY = 10;
   }
 
-  startGameplay(renderer, zone, characters, spawnX, spawnY);
+  startGameplay(renderer, zone, characters, spawnX, spawnY, aiClient);
 }
 
 main().catch(console.error);
