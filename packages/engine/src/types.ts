@@ -505,6 +505,13 @@ export const GameEventSchema = z.object({
 });
 export type GameEvent = z.infer<typeof GameEventSchema>;
 
+export const DeferredEventSchema = z.object({
+  event: GameEventSchema,
+  triggerCondition: z.string(),
+  createdAt: z.number(),
+});
+export type DeferredEvent = z.infer<typeof DeferredEventSchema>;
+
 // ── Conversation ────────────────────────────────────────────
 
 export const ConversationTurnSchema = z.object({

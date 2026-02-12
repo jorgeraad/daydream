@@ -45,6 +45,22 @@ const TASK_BUDGET_OVERRIDES: Partial<Record<TaskType, Partial<ContextBudget>>> =
       specificContext: 3000,
       responseBudget: 1500,
     },
+    "event-evaluation": {
+      systemPrompt: 1500,
+      worldContext: 1000,
+      chronicleSummary: 1500,
+      recentEvents: 1500,
+      specificContext: 2000,
+      responseBudget: 1500,
+    },
+    "world-tick": {
+      systemPrompt: 1500,
+      worldContext: 1000,
+      chronicleSummary: 1000,
+      recentEvents: 1500,
+      specificContext: 2000,
+      responseBudget: 1500,
+    },
   };
 
 export class ContextManager {

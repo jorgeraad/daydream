@@ -28,6 +28,7 @@ export type {
   ChronicleEntryType,
   ConversationState,
   ConversationTurn,
+  DeferredEvent,
   Direction,
   Effect,
   GameEvent,
@@ -81,6 +82,7 @@ export {
   ChronicleEntryTypeSchema,
   ConversationStateSchema,
   ConversationTurnSchema,
+  DeferredEventSchema,
   DirectionSchema,
   EffectSchema,
   GameEventSchema,
@@ -125,5 +127,13 @@ export type { CompressionProvider } from "./chronicle/Chronicle.ts";
 export { createNarrativeThread, clampTension } from "./chronicle/NarrativeThread.ts";
 
 // Events
-export { EventBus } from "./event/EventSystem.ts";
-export type { GameEvents } from "./event/EventSystem.ts";
+export { EventBus, EventQueue, ConsequenceEvaluator } from "./event/EventSystem.ts";
+export type {
+  GameEvents,
+  ConditionChecker,
+  ConsequenceResult,
+  ConsequenceProvider,
+} from "./event/EventSystem.ts";
+export { WorldClock } from "./event/WorldClock.ts";
+export { WorldTicker } from "./event/WorldTicker.ts";
+export type { TickContext, TickEventProvider } from "./event/WorldTicker.ts";
