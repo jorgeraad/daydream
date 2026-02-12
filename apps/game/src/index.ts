@@ -22,7 +22,11 @@ import type { BuildingVisual, ObjectVisual, ZoneBuildResult } from "@daydream/en
 import { AIClient } from "@daydream/ai";
 import { InputRouter } from "./InputRouter.ts";
 import { TitleScreen } from "./TitleScreen.ts";
+import type { TitleScreenResult } from "./TitleScreen.ts";
 import { WorldGenerator, type ZoneCharacter } from "./WorldGenerator.ts";
+import { SettingsManager } from "./settings/SettingsManager.ts";
+import { SettingsScreen } from "./settings/SettingsScreen.ts";
+import { OnboardingScreen } from "./OnboardingScreen.ts";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -390,63 +394,83 @@ async function main() {
     maxFps: 30,
   });
 
-  // Show title screen
+  // Load settings
+  const settingsManager = new SettingsManager();
+  settingsManager.load();
+
+  // Onboarding gate — ensure API key is configured before proceeding
+  if (!settingsManager.hasApiKey("anthropic")) {
+    const onboarding = new OnboardingScreen(renderer, settingsManager);
+    await onboarding.show();
+    onboarding.destroy();
+  }
+
+  // Title screen loop — returns to title after settings
   const titleScreen = new TitleScreen(renderer);
-  const playerPrompt = await titleScreen.show();
+  let playerPrompt: string;
+  while (true) {
+    const result: TitleScreenResult = await titleScreen.show();
+    if (result.type === "settings") {
+      titleScreen.destroy();
+      const settingsScreen = new SettingsScreen(renderer, settingsManager);
+      await settingsScreen.show();
+      settingsScreen.destroy();
+      // If user deleted their key in settings, re-run onboarding
+      if (!settingsManager.hasApiKey("anthropic")) {
+        const onboarding = new OnboardingScreen(renderer, settingsManager);
+        await onboarding.show();
+        onboarding.destroy();
+      }
+      continue;
+    }
+    playerPrompt = result.value;
+    break;
+  }
   titleScreen.destroy();
 
-  // Try AI generation
-  const hasApiKey = !!process.env.ANTHROPIC_API_KEY;
+  // Generate world — API key is guaranteed at this point
+  const loadingScreen = new LoadingScreen(renderer);
+  loadingScreen.show();
+
   let zone: ZoneData;
   let characters: Character[];
   let spawnX: number;
   let spawnY: number;
 
-  if (hasApiKey) {
-    const loadingScreen = new LoadingScreen(renderer);
-    loadingScreen.show();
+  try {
+    const aiClient = new AIClient({ apiKey: settingsManager.getApiKey("anthropic") });
+    const generator = new WorldGenerator(
+      aiClient,
+      toBuildingVisuals(),
+      toObjectVisuals(),
+    );
 
-    try {
-      const aiClient = new AIClient();
-      const generator = new WorldGenerator(
-        aiClient,
-        toBuildingVisuals(),
-        toObjectVisuals(),
-      );
+    const world = await generator.generate(playerPrompt, (status) => {
+      loadingScreen.setStatus(status);
+    });
 
-      const world = await generator.generate(playerPrompt, (status) => {
-        loadingScreen.setStatus(status);
-      });
+    zone = world.zone;
+    spawnX = world.zone.spawnPoint.x;
+    spawnY = world.zone.spawnPoint.y;
 
-      zone = world.zone;
-      spawnX = world.zone.spawnPoint.x;
-      spawnY = world.zone.spawnPoint.y;
+    // Convert AI characters to engine characters
+    characters = world.characters.map((c) => toCharacter(c, world.zone.id, "gen_world"));
 
-      // Convert AI characters to engine characters
-      characters = world.characters.map((c) => toCharacter(c, world.zone.id, "gen_world"));
-
-      // Clear collision at character positions
-      const collisionLayer = zone.layers.find((l) => l.name === "collision");
-      const objectsLayer = zone.layers.find((l) => l.name === "objects");
-      if (collisionLayer && objectsLayer) {
-        for (const c of characters) {
-          const idx = c.state.position.y * zone.width + c.state.position.x;
-          collisionLayer.data[idx] = { char: "0", fg: "#000000" };
-          objectsLayer.data[idx] = { char: "", fg: "#000000" };
-        }
+    // Clear collision at character positions
+    const collisionLayer = zone.layers.find((l) => l.name === "collision");
+    const objectsLayer = zone.layers.find((l) => l.name === "objects");
+    if (collisionLayer && objectsLayer) {
+      for (const c of characters) {
+        const idx = c.state.position.y * zone.width + c.state.position.x;
+        collisionLayer.data[idx] = { char: "0", fg: "#000000" };
+        objectsLayer.data[idx] = { char: "", fg: "#000000" };
       }
-
-      loadingScreen.destroy();
-    } catch (err) {
-      loadingScreen.destroy();
-      // Fall back to test zone on generation failure
-      zone = buildTestZone();
-      characters = buildTestCharacters(zone);
-      spawnX = 5;
-      spawnY = 10;
     }
-  } else {
-    // No API key — use test zone
+
+    loadingScreen.destroy();
+  } catch (err) {
+    loadingScreen.destroy();
+    // Fall back to test zone on generation failure
     zone = buildTestZone();
     characters = buildTestCharacters(zone);
     spawnX = 5;

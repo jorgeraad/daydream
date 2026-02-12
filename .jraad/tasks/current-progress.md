@@ -18,9 +18,13 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **[2026-02-12]** Gotcha: OpenTUI `TextRenderable` uses `fg` property for text color, NOT `color`. TextOptions extends TextBufferOptions which has `fg`/`bg`. *(Agent: quick-bobcat, Re: 20260212114214)*
 
 ## In Progress
+- **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/multi-zone-design.md` | Branch: `main` | Agent: swift-kestrel
+- **20260212125926 - DD: Animation & Atmosphere System** | Touches: `.jraad/docs/animation-atmosphere-design.md` | Branch: `main` | Agent: fast-bobcat
+- **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/music-sound-design.md` | Branch: `main` | Agent: deep-finch
+- **20260212114216 - Event System** | Touches: `packages/engine/src/event/` | Branch: `main` | Agent: light-falcon
 
 ## Completed (Pending Merge)
-_None._
+- **20260212130954 - Settings & API Key Management** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -28,16 +32,12 @@ _None._
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `neat-gecko` | Task: general | Queued: 2026-02-12 13:19:10 EST
+1. `calm-jackal` | Task: 20260212130954 | Queued: 2026-02-12 13:39:51 EST
 
 ## Ready
 
-- **20260212114216 - Event System** — World ticker, event evaluation, world clock | Touches: `packages/engine/src/event/`
-- **20260212125925 - DD: Multi-Zone World & Zone Transitions** — Design doc for lazy zone generation, preloading, memory management, zone transitions | Touches: `.jraad/docs/`
-- **20260212125926 - DD: Animation & Atmosphere System** — Design doc for AnimationManager, ambient animations, time-of-day palettes | Touches: `.jraad/docs/`
 - **20260212114213 - AI Dialogue** — Dialogue panel, AI-driven conversations, response streaming | Touches: `packages/renderer/src/ui/DialoguePanel.ts, apps/game/src/`
 - **20260212125928 - Loading Animations** — Enhanced loading screen animations | Touches: `packages/renderer/src/ui/LoadingScreen.ts`
-- **20260212130954 - Settings & API Key Management** — Secure API key storage, settings screen | Touches: `apps/game/src/TitleScreen.ts, apps/game/src/settings/`
 
 ## Up Next
 - **20260212125927 - Mini-Map Rendering** — Blocked-By: 20260212125925

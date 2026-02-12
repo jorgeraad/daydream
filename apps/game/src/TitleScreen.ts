@@ -12,13 +12,17 @@ const TITLE_ART = `
 
 const SUBTITLE = "AI-generated worlds from your imagination";
 const PROMPT_LABEL = "Where would you like to go?";
-const HINT = "Type your world prompt and press Enter";
+const HINT = "Type your world prompt and press Enter\n[s] Settings";
+
+export type TitleScreenResult =
+  | { type: "prompt"; value: string }
+  | { type: "settings" };
 
 export class TitleScreen {
   private container: BoxRenderable;
   private inputText: TextRenderable;
   private buffer = "";
-  private resolve: ((value: string) => void) | null = null;
+  private resolve: ((value: TitleScreenResult) => void) | null = null;
 
   constructor(private renderer: CliRenderer) {
     // Main container — fills the screen, centered content
@@ -85,8 +89,10 @@ export class TitleScreen {
     this.container.add(hint);
   }
 
-  /** Show the title screen and wait for the user to enter a prompt. */
-  async show(): Promise<string> {
+  /** Show the title screen and wait for the user to enter a prompt or open settings. */
+  async show(): Promise<TitleScreenResult> {
+    this.buffer = "";
+    this.inputText.content = "█";
     this.renderer.root.add(this.container);
 
     // Set up keyboard handler
@@ -96,7 +102,7 @@ export class TitleScreen {
 
     this.renderer.requestRender();
 
-    return new Promise<string>((resolve) => {
+    return new Promise<TitleScreenResult>((resolve) => {
       this.resolve = resolve;
     });
   }
@@ -109,7 +115,7 @@ export class TitleScreen {
   private handleKey(key: { name: string; char?: string; shift?: boolean }): void {
     if (key.name === "Return" || key.name === "Enter") {
       if (this.buffer.trim().length > 0) {
-        this.resolve?.(this.buffer.trim());
+        this.resolve?.({ type: "prompt", value: this.buffer.trim() });
         this.resolve = null;
       }
       return;
@@ -117,6 +123,10 @@ export class TitleScreen {
 
     if (key.name === "Backspace" || key.name === "Delete") {
       this.buffer = this.buffer.slice(0, -1);
+    } else if (key.char === "s" && this.buffer.length === 0) {
+      this.resolve?.({ type: "settings" });
+      this.resolve = null;
+      return;
     } else if (key.char && key.char.length === 1 && key.name !== "Escape") {
       this.buffer += key.char;
     }
