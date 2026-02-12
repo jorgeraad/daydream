@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 11:42:20 EST |
-| **Last Modified**  | 2026-02-12 12:52:59 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 13:00:31 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | calm-falcon |
 | **Blocked-By**     | 20260212114208, 20260212114210 |
@@ -51,3 +51,6 @@ Starting implementation on branch `main`. Ancestors: engine core types (20260212
 
 ### 2026-02-12 12:52:59 EST
 Task completed. All 12 acceptance criteria met. Created 4 new files: `packages/renderer/src/palettes/characters.ts` (10 character presets), `packages/renderer/src/CharacterRenderer.ts` (CharacterRenderer class + proximity helpers), `apps/game/src/InputRouter.ts` (mode-based input routing with EventBus integration), test files for both. Updated `packages/renderer/src/index.ts` (exports) and `apps/game/src/index.ts` (5 test characters, character collision, InputRouter wiring). All 75 tests pass (21 new). Typecheck clean.
+
+### 2026-02-12 13:00:31 EST
+Branch merged to the main branch.
