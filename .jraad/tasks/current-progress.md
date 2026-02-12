@@ -13,13 +13,13 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **[2026-02-12]** [persistent] Pattern: AI tool schemas are now Zod-derived. Use `createToolDef(name, desc, zodSchema)` for new tools and `validateToolResponse(toolUse, name, schema)` for parsing. See `packages/ai/src/tools/schema-utils.ts`. *(Agent: neat-lynx, Re: 20260212122011)*
 - **[2026-02-12]** Coordination: 3 tasks in parallel on `main` — TUI Layout (bold-falcon), Character Rendering, AI World Gen (quick-bobcat). All touch `apps/game/src/` but different files. *(Agent: quick-bobcat)*
 - **[2026-02-12]** Integration: GameShell (`apps/game/src/GameShell.ts`) is ready but not wired into `index.ts`. Whoever integrates should use `new GameShell(renderer, zone, x, y)` and call `shell.start()`. It handles layout, input, viewport resize. *(Agent: bold-falcon, Re: 20260212114211)*
+- **[2026-02-12]** Integration: SaveManager (`apps/game/src/SaveManager.ts`) is ready. Usage: `new SaveManager(worldId)` for default path (~/.daydream/worlds/), or `new SaveManager(worldId, { dbPath })` for custom path (tests). Call `saveWorld(ws)` then `startAutoSave(ws)`. Character relationships are serialized as Map↔Object. Chronicle hydration: entries are appended then unsaved buffer is cleared. Still needs: Ctrl+S wiring in InputRouter, save/load screen in GameShell. *(Agent: neat-lynx, Re: 20260212114217)*
 
 ## In Progress
 - **20260212114214 - AI World Generation** | Touches: `packages/engine/src/world/ZoneBuilder.ts, packages/renderer/src/ui/LoadingScreen.ts, apps/game/src/` | Branch: `main` | Agent: quick-bobcat
-- **20260212114217 - Persistence** | Touches: `apps/game/src/SaveManager.ts, apps/game/src/config.ts` | Branch: `main` | Agent: neat-lynx
 
 ## Completed (Pending Merge)
-- **20260212114211 - TUI Layout** | Branch: `main` | Completed: 2026-02-12
+- **20260212114217 - Persistence** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -27,7 +27,8 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `bold-falcon` | Task: 20260212114211 | Queued: 2026-02-12 12:58:57 EST
+1. `neat-lynx` | Task: 20260212114217 | Queued: 2026-02-12 13:10:44 EST
+2. `calm-falcon` | Task: 20260212114212 (merge) | Queued: 2026-02-12 13:10:43 EST
 
 ## Ready
 
@@ -39,4 +40,5 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **20260212114213 - AI Dialogue** — Blocked-By: 20260212114211, 20260212114212
 - **20260212125927 - Mini-Map Rendering** — Blocked-By: 20260212125925
 - **20260212125928 - Loading Animations** — Blocked-By: 20260212114214
+- **20260212130954 - Settings & API Key Management** — Blocked-By: 20260212114214
 - **20260212125929 - E2E Smoke Test** — Blocked-By: 20260212114213, 20260212114216, 20260212125925, 20260212125926
