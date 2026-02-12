@@ -28,3 +28,5 @@ export { DialoguePanel } from "./ui/DialoguePanel.ts";
 export type { DialogueOption, DialogueSelection } from "./ui/DialoguePanel.ts";
 export { GameInput } from "./ui/GameInput.ts";
 export type { GameInputConfig } from "./ui/GameInput.ts";
+export { MaskedInput } from "./ui/MaskedInput.ts";
+export type { MaskedInputConfig } from "./ui/MaskedInput.ts";
