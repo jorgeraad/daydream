@@ -10,7 +10,9 @@
     }
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "catalog:"
+    "@anthropic-ai/sdk": "catalog:",
+    "zod": "catalog:",
+    "zod-to-json-schema": "catalog:"
   },
   "scripts": {
     "test": "bun test"

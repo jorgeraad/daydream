@@ -68,6 +68,43 @@ describe("parseZoneResponse", () => {
       parseZoneResponse(makeToolUse("wrong_tool", {})),
     ).toThrow("Expected create_zone tool");
   });
+
+  it("rejects missing required fields", () => {
+    expect(() =>
+      parseZoneResponse(makeToolUse("create_zone", { name: "Only Name" })),
+    ).toThrow("Invalid create_zone response");
+  });
+
+  it("rejects wrong type for position", () => {
+    const input = {
+      name: "Test",
+      description: "Test zone",
+      terrain: { primary_ground: "grass", features: [] },
+      buildings: [],
+      objects: [{ type: "rock", position: "bad" }],
+      characters: [],
+      narrative_hooks: [],
+    };
+    expect(() =>
+      parseZoneResponse(makeToolUse("create_zone", input)),
+    ).toThrow("Invalid create_zone response");
+  });
+
+  it("handles extra fields gracefully", () => {
+    const input = {
+      name: "Test Zone",
+      description: "A test zone",
+      terrain: { primary_ground: "grass", features: [] },
+      buildings: [],
+      objects: [],
+      characters: [],
+      narrative_hooks: [],
+      extra_field: "should be ignored",
+    };
+    const result = parseZoneResponse(makeToolUse("create_zone", input));
+    expect(result.name).toBe("Test Zone");
+    expect((result as Record<string, unknown>).extra_field).toBeUndefined();
+  });
 });
 
 describe("parseDialogueResponse", () => {
@@ -122,6 +159,27 @@ describe("parseDialogueResponse", () => {
       parseDialogueResponse(makeToolUse("wrong_tool", {})),
     ).toThrow("Expected dialogue_response tool");
   });
+
+  it("rejects missing character_speech", () => {
+    const input = {
+      character_emotion: "neutral",
+      options: [{ text: "Hi", type: "dialogue", tone: "friendly" }],
+    };
+    expect(() =>
+      parseDialogueResponse(makeToolUse("dialogue_response", input)),
+    ).toThrow("Invalid dialogue_response response");
+  });
+
+  it("rejects invalid option type", () => {
+    const input = {
+      character_speech: "Hello",
+      character_emotion: "neutral",
+      options: [{ text: "Hi", type: "invalid_type", tone: "friendly" }],
+    };
+    expect(() =>
+      parseDialogueResponse(makeToolUse("dialogue_response", input)),
+    ).toThrow("Invalid dialogue_response response");
+  });
 });
 
 describe("parseConsequencesResponse", () => {
@@ -167,6 +225,31 @@ describe("parseConsequencesResponse", () => {
     const result = parseConsequencesResponse(makeToolUse("evaluate_consequences", input));
     expect(result.deferredEvents).toHaveLength(0);
   });
+
+  it("rejects missing chronicle_entry", () => {
+    const input = {
+      character_state_changes: [
+        { character_id: "test", memory_added: "test" },
+      ],
+      narrative_threads: [],
+    };
+    expect(() =>
+      parseConsequencesResponse(makeToolUse("evaluate_consequences", input)),
+    ).toThrow("Invalid evaluate_consequences response");
+  });
+
+  it("rejects character_state_changes missing memory_added", () => {
+    const input = {
+      character_state_changes: [
+        { character_id: "test" },
+      ],
+      chronicle_entry: "Test.",
+      narrative_threads: [],
+    };
+    expect(() =>
+      parseConsequencesResponse(makeToolUse("evaluate_consequences", input)),
+    ).toThrow("Invalid evaluate_consequences response");
+  });
 });
 
 describe("parseWorldTickResponse", () => {
@@ -188,6 +271,7 @@ describe("parseWorldTickResponse", () => {
     const result = parseWorldTickResponse(makeToolUse("world_tick", input));
     expect(result.events).toHaveLength(1);
     expect(result.events[0]!.type).toBe("ambient");
+    expect(result.events[0]!.chronicleEntry).toContain("wind changed");
     expect(result.narration).toContain("breeze");
   });
 
@@ -196,6 +280,37 @@ describe("parseWorldTickResponse", () => {
     const result = parseWorldTickResponse(makeToolUse("world_tick", input));
     expect(result.events).toHaveLength(0);
     expect(result.narration).toBeUndefined();
+  });
+
+  it("rejects invalid event type", () => {
+    const input = {
+      events: [
+        {
+          type: "catastrophic",
+          description: "Bad",
+          effects: [],
+          chronicle_entry: "Bad things.",
+        },
+      ],
+    };
+    expect(() =>
+      parseWorldTickResponse(makeToolUse("world_tick", input)),
+    ).toThrow("Invalid world_tick response");
+  });
+
+  it("rejects events missing description", () => {
+    const input = {
+      events: [
+        {
+          type: "ambient",
+          effects: [],
+          chronicle_entry: "Wind.",
+        },
+      ],
+    };
+    expect(() =>
+      parseWorldTickResponse(makeToolUse("world_tick", input)),
+    ).toThrow("Invalid world_tick response");
   });
 });
 
@@ -243,5 +358,43 @@ describe("parseWorldSeedResponse", () => {
     expect(() =>
       parseWorldSeedResponse(makeToolUse("wrong_tool", {})),
     ).toThrow("Expected create_world tool");
+  });
+
+  it("rejects missing setting", () => {
+    const input = {
+      biome_map: { center_biome: "village", distribution: [] },
+      initial_narrative: { hooks: [], main_tension: "", atmosphere: "" },
+      world_rules: { has_magic: false, tech_level: "", economy: "", dangers: [], customs: [] },
+    };
+    expect(() =>
+      parseWorldSeedResponse(makeToolUse("create_world", input)),
+    ).toThrow("Invalid create_world response");
+  });
+
+  it("rejects invalid distance enum", () => {
+    const input = {
+      setting: { name: "Test", type: "test", era: "test", tone: "test", description: "test" },
+      biome_map: {
+        center_biome: "village",
+        distribution: [{ biome: "forest", direction: "north", distance: "very_far" }],
+      },
+      initial_narrative: { hooks: [], main_tension: "", atmosphere: "" },
+      world_rules: { has_magic: false, tech_level: "", economy: "", dangers: [], customs: [] },
+    };
+    expect(() =>
+      parseWorldSeedResponse(makeToolUse("create_world", input)),
+    ).toThrow("Invalid create_world response");
+  });
+
+  it("rejects has_magic as string instead of boolean", () => {
+    const input = {
+      setting: { name: "Test", type: "test", era: "test", tone: "test", description: "test" },
+      biome_map: { center_biome: "village", distribution: [] },
+      initial_narrative: { hooks: [], main_tension: "", atmosphere: "" },
+      world_rules: { has_magic: "yes", tech_level: "", economy: "", dangers: [], customs: [] },
+    };
+    expect(() =>
+      parseWorldSeedResponse(makeToolUse("create_world", input)),
+    ).toThrow("Invalid create_world response");
   });
 });

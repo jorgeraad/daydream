@@ -47,14 +47,20 @@ export {
   buildCompressionPrompt,
 } from "./prompts/compression.ts";
 
-// Tool schemas
-export { createZoneTool, parseZoneResponse } from "./tools/zone-tools.ts";
+// Tool schemas and parsers
+export {
+  createZoneTool,
+  ZoneSpecSchema,
+  parseZoneResponse,
+} from "./tools/zone-tools.ts";
 export type { ZoneSpec } from "./tools/zone-tools.ts";
 
 export {
   dialogueResponseTool,
+  DialogueResponseSchema,
   parseDialogueResponse,
   evaluateConsequencesTool,
+  ConversationConsequencesSchema,
   parseConsequencesResponse,
 } from "./tools/dialogue-tools.ts";
 export type {
@@ -64,8 +70,10 @@ export type {
 
 export {
   worldTickTool,
+  WorldTickResultSchema,
   parseWorldTickResponse,
   createWorldTool,
+  WorldSeedSpecSchema,
   parseWorldSeedResponse,
 } from "./tools/event-tools.ts";
 export type {
@@ -73,3 +81,6 @@ export type {
   WorldTickResult,
   WorldSeedSpec,
 } from "./tools/event-tools.ts";
+
+// Utilities
+export { createToolDef, validateToolResponse } from "./tools/schema-utils.ts";
