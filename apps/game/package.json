@@ -1,0 +1,15 @@
+{
+  "name": "@daydream/game",
+  "version": "0.0.1",
+  "private": true,
+  "dependencies": {
+    "@daydream/engine": "workspace:*",
+    "@daydream/ai": "workspace:*",
+    "@daydream/renderer": "workspace:*"
+  },
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  }
+}

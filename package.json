@@ -1,0 +1,22 @@
+{
+  "name": "daydream",
+  "private": true,
+  "workspaces": {
+    "packages": ["packages/*", "apps/*"],
+    "catalog": {
+      "typescript": "^5.7.0",
+      "@anthropic-ai/sdk": "^0.39.0"
+    }
+  },
+  "scripts": {
+    "dev": "bun run --filter '@daydream/game' dev",
+    "build": "bun run --workspaces --if-present build",
+    "typecheck": "tsc --build",
+    "test": "bun run --workspaces --if-present test",
+    "start": "bun run apps/game/src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.7.0"
+  }
+}

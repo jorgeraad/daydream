@@ -1,0 +1,18 @@
+{
+  "name": "@daydream/ai",
+  "version": "0.0.1",
+  "private": true,
+  "exports": {
+    ".": {
+      "bun": "./src/index.ts",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "catalog:"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}
