@@ -69,6 +69,19 @@ export class ContextManager {
     this.recentEvents = events;
   }
 
+  /**
+   * Convenience method to update both chronicle summary and recent events
+   * from pre-formatted chronicle data. The game loop calls this to refresh
+   * the AI context from the Chronicle store.
+   */
+  updateFromChronicle(summaries: { recent: string; historical: string }, recentEntries: string): void {
+    const combined = [summaries.historical, summaries.recent]
+      .filter(Boolean)
+      .join("\n\n");
+    this.chronicleSummary = combined;
+    this.recentEvents = recentEntries;
+  }
+
   getBudgetForTask(task: TaskType): ContextBudget {
     const overrides = TASK_BUDGET_OVERRIDES[task];
     if (!overrides) return { ...this.budget };

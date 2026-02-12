@@ -5,16 +5,22 @@
 > When in doubt, check those directories directly.
 
 ## Overview
-Daydream is an AI-native terminal game where every world is generated from a single prompt. Project scaffolding complete — Bun monorepo with 4 packages, OpenTUI rendering a title screen. Ready for parallel implementation on 3 tracks.
+Daydream is an AI-native terminal game where every world is generated from a single prompt. Project scaffolding complete — Bun monorepo with 4 packages, OpenTUI rendering a title screen. Foundation layer merged (engine types, AI client, tile renderer, Zod validation). Now implementing feature tracks: TUI layout, character rendering, AI world generation in parallel.
 
 ## Shared Context
 - **[2026-02-12]** [persistent] Planning: 12 MVP tasks created. After scaffolding, 3 parallel tracks: engine types, AI client, tile renderer. *(Agent: quick-lemur)*
 - **[2026-02-12]** [persistent] Build: Bun catalogs require `workspaces` object format (not array). tsconfig uses `emitDeclarationOnly` for project references. *(Agent: quick-lemur, Re: 20260212114207)*
 - **[2026-02-12]** [persistent] Pattern: AI tool schemas are now Zod-derived. Use `createToolDef(name, desc, zodSchema)` for new tools and `validateToolResponse(toolUse, name, schema)` for parsing. See `packages/ai/src/tools/schema-utils.ts`. *(Agent: neat-lynx, Re: 20260212122011)*
+- **[2026-02-12]** Coordination: 3 tasks in parallel on `main` — TUI Layout (bold-falcon), Character Rendering, AI World Gen (quick-bobcat). All touch `apps/game/src/` but different files. *(Agent: quick-bobcat)*
 
 ## In Progress
+- **20260212114211 - TUI Layout** | Touches: `packages/renderer/src/ui/, apps/game/src/GameShell.ts` | Branch: `main` | Agent: bold-falcon
+- **20260212114214 - AI World Generation** | Touches: `packages/engine/src/world/ZoneBuilder.ts, packages/renderer/src/ui/LoadingScreen.ts, apps/game/src/` | Branch: `main` | Agent: quick-bobcat
+- **20260212114217 - Persistence** | Touches: `apps/game/src/SaveManager.ts, apps/game/src/config.ts` | Branch: `main` | Agent: neat-lynx
 
 ## Completed (Pending Merge)
+- **20260212114212 - Character Rendering & Interaction** | Branch: `main` | Completed: 2026-02-12
+- **20260212114215 - Chronicle & Memory** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -22,15 +28,11 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-_Empty — no agents waiting to commit._
+1. `quick-coyote` | Task: 20260212114215 | Queued: 2026-02-12 12:56:57 EST
 
 ## Ready
-- **20260212114211 - TUI Layout** — Multi-panel TUI shell (viewport + side panel + narrative bar) | Touches: `packages/renderer/src/, apps/game/src/`
-- **20260212114212 - Character Rendering & Interaction** — Character presets, proximity detection, interaction trigger | Touches: `packages/renderer/src/CharacterRenderer.ts, packages/renderer/src/palettes/characters.ts, apps/game/src/InputRouter.ts`
-- **20260212114214 - AI World Generation** — Title screen prompt input, Claude generates WorldSeed and zones | Touches: `packages/engine/src/world/ZoneBuilder.ts, packages/renderer/src/ui/LoadingScreen.ts, apps/game/src/`
-- **20260212114215 - Chronicle & Memory** — Persistent world memory, character memory, chronicle compression | Touches: `packages/engine/src/chronicle/, packages/engine/src/character/CharacterMemory.ts, packages/ai/src/context.ts, packages/ai/src/prompts/compression.ts`
-- **20260212114217 - Persistence** — SQLite with bun:sqlite, SaveManager, save/load UI | Touches: `apps/game/src/SaveManager.ts, apps/game/src/config.ts`
 
+_No tasks ready — all unblocked tasks are in progress._
 
 ## Up Next
 - **20260212114213 - AI Dialogue** — Blocked-By: 20260212114211, 20260212114212

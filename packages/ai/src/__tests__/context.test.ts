@@ -113,4 +113,77 @@ describe("ContextManager", () => {
     const ctx = cm.getContextFor("world-creation");
     expect(ctx.chronicleSummary).toBe("");
   });
+
+  describe("updateFromChronicle", () => {
+    it("populates chronicle summary from both summaries", () => {
+      const cm = new ContextManager();
+      cm.updateFromChronicle(
+        { recent: "The hero rested at the inn", historical: "Long ago, the kingdom fell" },
+        "[event] A storm approaches",
+      );
+
+      const ctx = cm.getContextFor("dialogue");
+      expect(ctx.chronicleSummary).toContain("Long ago, the kingdom fell");
+      expect(ctx.chronicleSummary).toContain("The hero rested at the inn");
+      expect(ctx.recentEvents).toBe("[event] A storm approaches");
+    });
+
+    it("handles empty historical summary", () => {
+      const cm = new ContextManager();
+      cm.updateFromChronicle(
+        { recent: "Recent events only", historical: "" },
+        "Some recent entries",
+      );
+
+      const ctx = cm.getContextFor("dialogue");
+      expect(ctx.chronicleSummary).toBe("Recent events only");
+    });
+
+    it("handles both summaries empty", () => {
+      const cm = new ContextManager();
+      cm.updateFromChronicle({ recent: "", historical: "" }, "");
+
+      const ctx = cm.getContextFor("dialogue");
+      expect(ctx.chronicleSummary).toBe("");
+      expect(ctx.recentEvents).toBe("");
+    });
+
+    it("chronicle-compression task gets full chronicle budget", () => {
+      const cm = new ContextManager();
+      const longSummary = "A".repeat(20000);
+      cm.updateFromChronicle(
+        { recent: longSummary, historical: "" },
+        "B".repeat(10000),
+      );
+
+      const budget = cm.getBudgetForTask("chronicle-compression");
+      expect(budget.chronicleSummary).toBe(3000);
+      expect(budget.recentEvents).toBe(2000);
+
+      const ctx = cm.getContextFor("chronicle-compression");
+      // Should be truncated to fit within budget
+      expect(ctx.chronicleSummary.length).toBeLessThan(longSummary.length);
+    });
+
+    it("dialogue uses character memory via specificContext", () => {
+      const cm = new ContextManager();
+      cm.updateFromChronicle(
+        { recent: "The hero saved the village", historical: "" },
+        "[conversation] Talked to the blacksmith",
+      );
+
+      const characterContext = "Trust: trusting (6), Familiarity: acquainted (3). Last interaction: Trade deal";
+      const ctx = cm.getContextFor("dialogue", characterContext);
+
+      expect(ctx.specificContext).toContain("Trust: trusting");
+      expect(ctx.chronicleSummary).toContain("The hero saved the village");
+      expect(ctx.recentEvents).toContain("Talked to the blacksmith");
+
+      const message = cm.assembleUserMessage(ctx);
+      expect(message).toContain("## Chronicle");
+      expect(message).toContain("## Recent Events");
+      expect(message).toContain("## Context");
+      expect(message).toContain("Trust: trusting");
+    });
+  });
 });

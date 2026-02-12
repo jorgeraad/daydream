@@ -112,12 +112,17 @@ export {
 export { WorldState } from "./world/WorldState.ts";
 export { zoneId, parseZoneCoords, getTileAt, getLayer, isPassable, adjacentZoneIds } from "./world/Zone.ts";
 export { createBiomeConfig, blendPalettes } from "./world/BiomeSystem.ts";
+export { ZoneBuilder } from "./world/ZoneBuilder.ts";
+export type { ZoneBuildSpec, ZoneBuildResult, BuildingVisual, ObjectVisual } from "./world/ZoneBuilder.ts";
 
 // Character
 export { createDefaultMemory, getRelevantMemories, addConversationMemory, getRelationship, setRelationship } from "./character/Character.ts";
+export { CharacterMemory } from "./character/CharacterMemory.ts";
 
 // Chronicle
 export { Chronicle } from "./chronicle/Chronicle.ts";
+export type { CompressionProvider } from "./chronicle/Chronicle.ts";
+export { createNarrativeThread, clampTension } from "./chronicle/NarrativeThread.ts";
 
 // Events
 export { EventBus } from "./event/EventSystem.ts";
