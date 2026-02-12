@@ -16,6 +16,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 - **[2026-02-12]** Integration: SaveManager (`apps/game/src/SaveManager.ts`) is ready. Usage: `new SaveManager(worldId)` for default path (~/.daydream/worlds/), or `new SaveManager(worldId, { dbPath })` for custom path (tests). Call `saveWorld(ws)` then `startAutoSave(ws)`. Character relationships are serialized as Map↔Object. Chronicle hydration: entries are appended then unsaved buffer is cleared. Still needs: Ctrl+S wiring in InputRouter, save/load screen in GameShell. *(Agent: neat-lynx, Re: 20260212114217)*
 - **[2026-02-12]** Integration: Game flow is now TitleScreen → WorldGenerator (if API key) → gameplay, with fallback to hardcoded test zone. `WorldGenerator` orchestrates: prompt → WorldSeed (Opus) → ZoneSpec (Sonnet) → ZoneBuilder → tile data. `ZoneBuilder` is in engine package — accepts palettes/templates as params (no AI import dependency). *(Agent: quick-bobcat, Re: 20260212114214)*
 - **[2026-02-12]** Gotcha: OpenTUI `TextRenderable` uses `fg` property for text color, NOT `color`. TextOptions extends TextBufferOptions which has `fg`/`bg`. *(Agent: quick-bobcat, Re: 20260212114214)*
+- **[2026-02-12]** [persistent] Logging: LogTape configured via `apps/game/src/logging/`. Use `getLogger(["daydream", ...])` in any package. Test helper: `createTestLogSink()` from `@daydream/engine`. *(Agent: fast-hawk, Re: logging feature)*
 
 ## Feature Progress
 
@@ -32,6 +33,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `world-generation` | 1 | 3 | In Progress |
 | `animation-atmosphere` | 1 | 6 | Ready |
 | `audio` | 0 | 7 | In Progress |
+| `logging` | 6 | 6 | Complete |
 
 ## In Progress
 - **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/design-docs/20260212143327-multi-zone-world.md` | Branch: `main` | Agent: swift-kestrel
@@ -39,6 +41,12 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 
 ## Completed (Pending Merge)
 - **20260212142949 - Fix renderer not starting before screen input** | Branch: `main` | Completed: 2026-02-12
+- **20260212165458 - Add LogTape Dependencies & Logging Configuration** | Branch: `main` | Completed: 2026-02-12
+- **20260212165459 - SettingsManager Logging Support & UI** | Branch: `main` | Completed: 2026-02-12
+- **20260212165500 - Logging Startup Wiring** | Branch: `main` | Completed: 2026-02-12
+- **20260212165501 - AI Client Instrumentation** | Branch: `main` | Completed: 2026-02-12
+- **20260212165502 - Engine & Game Logging** | Branch: `main` | Completed: 2026-02-12
+- **20260212165503 - Logging Test Helpers** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -46,7 +54,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-_Empty — no agents waiting to commit._
+1. `fast-hawk` | Task: logging feature (165458-165503) | Queued: 2026-02-12 17:13:08 EST
 
 ## Ready
 

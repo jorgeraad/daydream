@@ -43,6 +43,8 @@ export interface GenerateParams {
   maxTokens?: number;
   tools?: Tool[];
   model?: ModelTier;
+  /** Optional label for logging — identifies what this AI call is for. */
+  taskType?: string;
 }
 
 export interface AIResponse {

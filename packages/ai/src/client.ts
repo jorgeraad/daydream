@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { getLogger } from "@logtape/logtape";
 import {
   MODEL_IDS,
   TASK_MODEL_MAP,
@@ -8,6 +9,8 @@ import {
   type TaskType,
   type ToolUseBlock,
 } from "./types.ts";
+
+const logger = getLogger(["daydream", "ai", "client"]);
 
 export class AIClient {
   private client: Anthropic;
@@ -31,22 +34,71 @@ export class AIClient {
   async generate(params: GenerateParams): Promise<AIResponse> {
     const modelTier = params.model ?? this.defaultModel;
     const modelId = MODEL_IDS[modelTier];
+    const start = performance.now();
 
-    const response = await this.client.messages.create({
+    logger.debug("AI request {task} via {model}", {
+      task: params.taskType ?? "unknown",
       model: modelId,
-      max_tokens: params.maxTokens ?? 2048,
-      temperature: params.temperature ?? 0.7,
       system: params.system,
       messages: params.messages,
-      ...(params.tools && params.tools.length > 0 ? { tools: params.tools } : {}),
+      tools: params.tools?.map((t) => t.name),
+      temperature: params.temperature,
+      maxTokens: params.maxTokens,
     });
 
-    return this.parseResponse(response);
+    try {
+      const response = await this.client.messages.create({
+        model: modelId,
+        max_tokens: params.maxTokens ?? 2048,
+        temperature: params.temperature ?? 0.7,
+        system: params.system,
+        messages: params.messages,
+        ...(params.tools && params.tools.length > 0 ? { tools: params.tools } : {}),
+      });
+
+      const parsed = this.parseResponse(response);
+      const duration = Math.round(performance.now() - start);
+
+      logger.info(
+        "AI call {task} ({model}) — {duration}ms, {inputTokens}in/{outputTokens}out",
+        {
+          task: params.taskType ?? "unknown",
+          model: modelId,
+          duration,
+          inputTokens: parsed.usage.inputTokens,
+          outputTokens: parsed.usage.outputTokens,
+          stopReason: parsed.stopReason,
+        },
+      );
+
+      logger.debug("AI response for {task}", {
+        task: params.taskType ?? "unknown",
+        text: parsed.text,
+        toolUse: parsed.toolUse,
+      });
+
+      return parsed;
+    } catch (err) {
+      const duration = Math.round(performance.now() - start);
+      logger.error("AI call failed for {task} ({model}) after {duration}ms", {
+        task: params.taskType ?? "unknown",
+        model: modelId,
+        duration,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      throw err;
+    }
   }
 
   async *stream(params: GenerateParams): AsyncGenerator<string> {
     const modelTier = params.model ?? this.defaultModel;
     const modelId = MODEL_IDS[modelTier];
+    const start = performance.now();
+
+    logger.info("AI stream starting: {task} via {model}", {
+      task: params.taskType ?? "unknown",
+      model: modelId,
+    });
 
     const stream = this.client.messages.stream({
       model: modelId,
@@ -64,6 +116,13 @@ export class AIClient {
         yield event.delta.text;
       }
     }
+
+    const duration = Math.round(performance.now() - start);
+    logger.info("AI stream completed: {task} ({model}) — {duration}ms", {
+      task: params.taskType ?? "unknown",
+      model: modelId,
+      duration,
+    });
   }
 
   private parseResponse(response: Anthropic.Message): AIResponse {

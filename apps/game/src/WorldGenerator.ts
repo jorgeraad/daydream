@@ -14,6 +14,9 @@ import {
   type ZoneSpec,
 } from "@daydream/ai";
 import { biomePalettes } from "@daydream/renderer";
+import { getLogger } from "@logtape/logtape";
+
+const logger = getLogger(["daydream", "game", "world-gen"]);
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -56,9 +59,16 @@ export class WorldGenerator {
     playerPrompt: string,
     onProgress?: ProgressCallback,
   ): Promise<GeneratedWorld> {
+    const start = performance.now();
+    logger.info("World generation starting for prompt: {prompt}", { prompt: playerPrompt });
+
     // Step 1: Generate world seed
     onProgress?.("Dreaming up your world...");
     const seedSpec = await this.generateWorldSeed(playerPrompt);
+    logger.info("World seed generated: {name} ({biome})", {
+      name: seedSpec.setting.name,
+      biome: seedSpec.biomeMap.centerBiome,
+    });
 
     // Step 2: Convert seed spec to engine WorldSeed
     onProgress?.("Shaping the landscape...");
@@ -68,6 +78,9 @@ export class WorldGenerator {
     // Step 3: Generate starting zone
     onProgress?.("Populating the first zone...");
     const zoneSpec = await this.generateZone(seed);
+    logger.info("Zone spec generated with {charCount} characters", {
+      charCount: zoneSpec.characters.length,
+    });
 
     // Step 4: Build tile data from zone spec
     onProgress?.("Rendering terrain...");
@@ -88,6 +101,13 @@ export class WorldGenerator {
     onProgress?.("Bringing characters to life...");
     const characters = this.extractCharacters(zoneSpec);
 
+    const duration = Math.round(performance.now() - start);
+    logger.info("World generation complete in {duration}ms — {charCount} characters", {
+      duration,
+      charCount: characters.length,
+      biome: seedSpec.biomeMap.centerBiome,
+    });
+
     return { seed, zone, characters, palette };
   }
 
@@ -101,6 +121,7 @@ export class WorldGenerator {
       model: "opus",
       maxTokens: 4096,
       temperature: 0.8,
+      taskType: "world-seed",
     });
 
     const toolUse = response.toolUse[0];
@@ -131,6 +152,7 @@ export class WorldGenerator {
       model: "sonnet",
       maxTokens: 4096,
       temperature: 0.7,
+      taskType: "zone-gen",
     });
 
     const toolUse = response.toolUse[0];

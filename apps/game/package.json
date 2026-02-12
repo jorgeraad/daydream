@@ -5,7 +5,9 @@
   "dependencies": {
     "@daydream/engine": "workspace:*",
     "@daydream/ai": "workspace:*",
-    "@daydream/renderer": "workspace:*"
+    "@daydream/renderer": "workspace:*",
+    "@logtape/logtape": "catalog:",
+    "@logtape/file": "catalog:"
   },
   "scripts": {
     "dev": "bun run --watch src/index.ts",

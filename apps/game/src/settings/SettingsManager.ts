@@ -88,6 +88,36 @@ export class SettingsManager {
     });
   }
 
+  /** Read a nested setting by dot-separated key (e.g., "logging.level"). */
+  get<T = unknown>(key: string): T | undefined {
+    const parts = key.split(".");
+    let current: unknown = this.settings;
+    for (const part of parts) {
+      if (current == null || typeof current !== "object") return undefined;
+      current = (current as Record<string, unknown>)[part];
+    }
+    return current as T;
+  }
+
+  /** Write a nested setting by dot-separated key and persist to disk. */
+  set(key: string, value: unknown): void {
+    const parts = key.split(".");
+    let current = this.settings;
+    for (let i = 0; i < parts.length - 1; i++) {
+      const part = parts[i]!;
+      if (!(part in current) || typeof current[part] !== "object" || current[part] === null) {
+        (current as Record<string, unknown>)[part] = {};
+      }
+      current = (current as Record<string, unknown>)[part] as Record<string, unknown>;
+    }
+    (current as Record<string, unknown>)[parts[parts.length - 1]!] = value;
+    this.writeSettings();
+  }
+
+  private writeSettings(): void {
+    writeFileSync(this.settingsPath, JSON.stringify(this.settings, null, 2));
+  }
+
   private readJson(path: string): Record<string, string> {
     if (!existsSync(path)) return {};
     try {

@@ -1,3 +1,4 @@
+import { getLogger } from "@logtape/logtape";
 import type {
   Zone,
   ChronicleEntry,
@@ -10,6 +11,8 @@ import type {
 } from "../types.ts";
 import type { WorldState } from "../world/WorldState.ts";
 import type { Chronicle } from "../chronicle/Chronicle.ts";
+
+const logger = getLogger(["daydream", "engine", "event"]);
 
 // ── Typed Event Map ─────────────────────────────────────────
 
@@ -62,6 +65,11 @@ export class EventBus {
 
   emit<T extends keyof GameEvents>(event: T, data: GameEvents[T]): void {
     const handlers = this.listeners.get(event);
+    logger.trace("Event {event} emitted ({listenerCount} listeners)", {
+      event,
+      listenerCount: handlers?.size ?? 0,
+      data,
+    });
     if (handlers) {
       for (const handler of handlers) {
         handler(data);

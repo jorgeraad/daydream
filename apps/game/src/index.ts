@@ -30,6 +30,9 @@ import { WorldGenerator, type ZoneCharacter } from "./WorldGenerator.ts";
 import { SettingsManager } from "./settings/SettingsManager.ts";
 import { SettingsScreen } from "./settings/SettingsScreen.ts";
 import { OnboardingScreen } from "./OnboardingScreen.ts";
+import { configureLogging } from "./logging/index.ts";
+import { getLogger } from "@logtape/logtape";
+import type { LogLevel } from "@logtape/logtape";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -465,6 +468,18 @@ function startGameplay(
 // ── Main ─────────────────────────────────────────────────────
 
 async function main() {
+  // Load settings and configure logging before anything else
+  const settingsManager = new SettingsManager();
+  settingsManager.load();
+
+  await configureLogging({
+    level: (settingsManager.get<string>("logging.level") as LogLevel) ?? "info",
+    format: (settingsManager.get<string>("logging.format") as "text" | "json") ?? "text",
+  });
+
+  const logger = getLogger(["daydream", "game"]);
+  logger.info("Daydream starting");
+
   const renderer = await createCliRenderer({
     exitOnCtrlC: true,
     useAlternateScreen: true,
@@ -473,10 +488,6 @@ async function main() {
     maxFps: 30,
   });
   renderer.start();
-
-  // Load settings
-  const settingsManager = new SettingsManager();
-  settingsManager.load();
 
   // Onboarding gate — ensure API key is configured before proceeding
   if (!settingsManager.hasApiKey("anthropic")) {
@@ -493,6 +504,12 @@ async function main() {
     if (result.type === "settings") {
       titleScreen.destroy();
       const settingsScreen = new SettingsScreen(renderer, settingsManager);
+      settingsScreen.setOnLoggingChange(() => {
+        configureLogging({
+          level: (settingsManager.get<string>("logging.level") as LogLevel) ?? "info",
+          format: (settingsManager.get<string>("logging.format") as "text" | "json") ?? "text",
+        });
+      });
       await settingsScreen.show();
       settingsScreen.destroy();
       // If user deleted their key in settings, re-run onboarding
@@ -509,6 +526,7 @@ async function main() {
   titleScreen.destroy();
 
   // Generate world — API key is guaranteed at this point
+  logger.info("Generating world from prompt: {prompt}", { prompt: playerPrompt });
   const loadingScreen = new LoadingScreen(renderer);
   loadingScreen.show();
 
@@ -550,13 +568,28 @@ async function main() {
 
     loadingScreen.destroy();
   } catch (err) {
+    logger.error("World generation failed, falling back to test zone", {
+      prompt: playerPrompt,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+
+    loadingScreen.setStatus("Generation failed — loading demo world...");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     loadingScreen.destroy();
-    // Fall back to test zone on generation failure
+
     zone = buildTestZone();
     characters = buildTestCharacters(zone);
     spawnX = 5;
     spawnY = 10;
   }
+
+  logger.info("Gameplay started in zone {zoneId} at ({x}, {y})", {
+    zoneId: zone.id,
+    x: spawnX,
+    y: spawnY,
+    characterCount: characters.length,
+  });
 
   startGameplay(renderer, zone, characters, spawnX, spawnY, aiClient);
 }

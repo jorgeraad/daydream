@@ -137,3 +137,7 @@ export type {
 export { WorldClock } from "./event/WorldClock.ts";
 export { WorldTicker } from "./event/WorldTicker.ts";
 export type { TickContext, TickEventProvider } from "./event/WorldTicker.ts";
+
+// Testing
+export { createTestLogSink } from "./testing/log-helpers.ts";
+export type { CapturedLog } from "./testing/log-helpers.ts";

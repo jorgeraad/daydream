@@ -7,11 +7,13 @@
       "typescript": "^5.7.0",
       "@anthropic-ai/sdk": "^0.39.0",
       "zod": "^3.24.0",
-      "zod-to-json-schema": "^3.24.0"
+      "zod-to-json-schema": "^3.24.0",
+      "@logtape/logtape": "^2.0.0",
+      "@logtape/file": "^2.0.0"
     }
   },
   "scripts": {
-    "dev": "bun run --filter '@daydream/game' dev",
+    "dev": "bun run apps/game/src/index.ts",
     "build": "bun run --workspaces --if-present build",
     "typecheck": "tsc --build",
     "test": "bun run --workspaces --if-present test",

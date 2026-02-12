@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@daydream/engine": "workspace:*",
-    "@opentui/core": "latest"
+    "@opentui/core": "latest",
+    "@logtape/logtape": "catalog:"
   },
   "scripts": {
     "test": "bun test"

@@ -26,6 +26,9 @@ import {
 } from "@daydream/engine";
 import type { DialoguePanel, DialogueSelection } from "@daydream/renderer";
 import type { InputRouter, KeyEvent } from "./InputRouter.ts";
+import { getLogger } from "@logtape/logtape";
+
+const logger = getLogger(["daydream", "game", "dialogue"]);
 
 /**
  * Orchestrates the full dialogue conversation lifecycle.
@@ -80,6 +83,12 @@ export class DialogueManager {
       // Switch to dialogue mode
       this.inputRouter.setMode("dialogue");
       this.inputRouter.setDialogueHandler((key: KeyEvent) => this.panel.handleKey(key));
+
+      logger.info("Conversation started with {name} ({id})", {
+        name: character.identity.name,
+        id: characterId,
+        zone: character.state.currentZone,
+      });
 
       this.eventBus.emit("dialogue:started", { characterId });
 
@@ -195,6 +204,7 @@ export class DialogueManager {
         tools: [dialogueResponseTool],
         model: "sonnet",
         maxTokens: 1024,
+        taskType: "dialogue",
       });
 
       // Find the dialogue_response tool use
@@ -212,6 +222,12 @@ export class DialogueManager {
   private async endConversation(): Promise<void> {
     const conversation = this.worldState.activeConversation;
     if (conversation) {
+      const character = this.worldState.characters.get(conversation.characterId);
+      logger.info("Conversation ended with {name} after {turns} turns", {
+        name: character?.identity.name ?? conversation.characterId,
+        turns: conversation.turns.length,
+      });
+
       conversation.isActive = false;
 
       // Fire-and-forget consequence evaluation
@@ -256,6 +272,7 @@ export class DialogueManager {
         tools: [evaluateConsequencesTool],
         model: "haiku",
         maxTokens: 1024,
+        taskType: "consequence-eval",
       });
 
       const toolUse = aiResponse.toolUse.find((t) => t.name === "evaluate_consequences");

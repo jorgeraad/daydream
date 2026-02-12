@@ -10,7 +10,8 @@
     }
   },
   "dependencies": {
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@logtape/logtape": "catalog:"
   },
   "scripts": {
     "test": "bun test"
