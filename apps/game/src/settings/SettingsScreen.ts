@@ -3,6 +3,7 @@ import {
   BoxRenderable,
   TextRenderable,
 } from "@opentui/core";
+import { MaskedInput } from "@daydream/renderer";
 import { SettingsManager, type ProviderInfo } from "./SettingsManager.ts";
 import type { LogLevel } from "@logtape/logtape";
 import { join } from "node:path";
@@ -25,7 +26,7 @@ export class SettingsScreen {
   private providers: ProviderInfo[] = [];
   private selectedIndex = 0;
   private editing = false;
-  private editBuffer = "";
+  private maskedInput: MaskedInput | null = null;
   private resolve: (() => void) | null = null;
   private onLoggingChange: OnLoggingChange | null = null;
 
@@ -148,6 +149,10 @@ export class SettingsScreen {
 
   /** Remove the settings screen from the renderer. */
   destroy(): void {
+    if (this.maskedInput) {
+      this.maskedInput.destroy();
+      this.maskedInput = null;
+    }
     this.renderer.root.remove("settings-screen");
   }
 
@@ -159,11 +164,8 @@ export class SettingsScreen {
       const prefix = selected ? "  ▸ " : "    ";
 
       if (this.editing && selected) {
-        const masked = this.editBuffer.length > 0
-          ? "*".repeat(this.editBuffer.length) + "█"
-          : "█";
-        this.providerTexts[i]!.content = `${prefix}${p.label}: ${masked}`;
-        this.providerTexts[i]!.fg = "#7aa2f7";
+        // When editing, hide the provider text — MaskedInput overlay is visible instead
+        this.providerTexts[i]!.content = "";
       } else {
         const apiKey = this.settingsManager.getApiKey(p.name);
         const value = apiKey
@@ -204,10 +206,10 @@ export class SettingsScreen {
 
   private handleKey(key: { name: string; raw?: string; shift?: boolean }): void {
     if (this.editing) {
-      this.handleEditKey(key);
-    } else {
-      this.handleNavigationKey(key);
+      // MaskedInput handles all input in edit mode — container should not interfere
+      return;
     }
+    this.handleNavigationKey(key);
   }
 
   private handleNavigationKey(key: { name: string; raw?: string }): void {
@@ -244,9 +246,7 @@ export class SettingsScreen {
 
     // Provider items: Enter to edit, d to delete
     if (key.name === "return") {
-      this.editing = true;
-      this.editBuffer = "";
-      this.updateDisplay();
+      this.startEditing();
       return;
     }
 
@@ -258,6 +258,55 @@ export class SettingsScreen {
         this.updateDisplay();
       }
     }
+  }
+
+  private startEditing(): void {
+    this.editing = true;
+    this.updateDisplay();
+
+    const provider = this.providers[this.selectedIndex];
+    if (!provider) return;
+
+    // Create MaskedInput overlay for the selected provider
+    this.maskedInput = new MaskedInput(this.renderer, {
+      id: "settings-edit-input",
+      width: 50,
+      placeholder: `Paste ${provider.label} key...`,
+      onSubmit: (value) => {
+        if (value.trim().length > 0) {
+          this.settingsManager.setApiKey(provider.name, value.trim());
+          this.providers = this.settingsManager.getProviders();
+        }
+        this.stopEditing();
+      },
+      onCancel: () => {
+        this.stopEditing();
+      },
+    });
+
+    // Insert the MaskedInput container after the selected provider's TextRenderable
+    const providerText = this.providerTexts[this.selectedIndex]!;
+    // insertBefore the next sibling — insert after the logging header if it's the last provider
+    const nextSibling = this.selectedIndex < this.providers.length - 1
+      ? this.providerTexts[this.selectedIndex + 1]!
+      : this.loggingHeaderText;
+    this.container.insertBefore(this.maskedInput.container, nextSibling);
+    this.maskedInput.focus();
+    this.renderer.requestRender();
+  }
+
+  private stopEditing(): void {
+    if (this.maskedInput) {
+      this.container.remove("settings-edit-input");
+      this.maskedInput.destroy();
+      this.maskedInput = null;
+    }
+
+    this.editing = false;
+    this.updateDisplay();
+
+    // Re-focus the container for navigation
+    this.container.focus();
   }
 
   private cycleLoggingOption(direction: number): void {
@@ -277,39 +326,5 @@ export class SettingsScreen {
       this.onLoggingChange?.("format", next);
     }
     this.updateDisplay();
-  }
-
-  private handleEditKey(key: { name: string; raw?: string }): void {
-    if (key.name === "escape") {
-      this.editing = false;
-      this.editBuffer = "";
-      this.updateDisplay();
-      return;
-    }
-
-    if (key.name === "return") {
-      if (this.editBuffer.trim().length > 0) {
-        const provider = this.providers[this.selectedIndex];
-        if (provider) {
-          this.settingsManager.setApiKey(provider.name, this.editBuffer.trim());
-          this.providers = this.settingsManager.getProviders();
-        }
-      }
-      this.editing = false;
-      this.editBuffer = "";
-      this.updateDisplay();
-      return;
-    }
-
-    if (key.name === "backspace" || key.name === "delete") {
-      this.editBuffer = this.editBuffer.slice(0, -1);
-      this.updateDisplay();
-      return;
-    }
-
-    if (key.raw && key.raw.length === 1) {
-      this.editBuffer += key.raw;
-      this.updateDisplay();
-    }
   }
 }

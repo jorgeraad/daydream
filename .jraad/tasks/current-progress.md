@@ -34,7 +34,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `animation-atmosphere` | 1 | 6 | Ready |
 | `audio` | 0 | 7 | In Progress |
 | `logging` | 6 | 6 | Complete |
-| `text-input` | 3 | 4 | In Progress |
+| `text-input` | 4 | 4 | Complete |
 
 ## In Progress
 - **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/design-docs/20260212143327-multi-zone-world.md` | Branch: `main` | Agent: swift-kestrel
@@ -56,7 +56,6 @@ _Empty — no agents waiting to commit._
 
 - **20260212125928 - Loading Animations** — Enhanced loading screen animations | Touches: `packages/renderer/src/ui/LoadingScreen.ts`
 - **20260212145509 - Animation Types & Manager Core** — Animation interface, CellOverride, AnimationManager with requestLive/dropLive lifecycle | Touches: `packages/renderer/src/animation/`
-- **20260212172322 - Migrate SettingsScreen + DialoguePanel** — Replace manual buffer with MaskedInput/InputRenderable | Touches: `apps/game/src/settings/SettingsScreen.ts`, `packages/renderer/src/ui/DialoguePanel.ts`
 
 ## Up Next
 - **20260212145506 - Audio Package Scaffolding & Playback** — Blocked-By: 20260212133127

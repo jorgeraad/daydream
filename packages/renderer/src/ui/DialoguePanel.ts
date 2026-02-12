@@ -1,6 +1,7 @@
 import {
   ScrollBoxRenderable,
   TextRenderable,
+  InputRenderable,
   type CliRenderer,
 } from "@opentui/core";
 
@@ -27,7 +28,7 @@ interface KeyEvent {
 
 /**
  * Dialogue UI panel rendered as a bottom bar.
- * State machine: idle → speaking → options → freeform.
+ * State machine: idle -> speaking -> options -> freeform.
  *
  * Typewriter effect reveals text character by character.
  * In options mode, player picks 1-4 or navigates with arrows.
@@ -54,7 +55,8 @@ export class DialoguePanel {
   private optionResolve: ((sel: DialogueSelection) => void) | null = null;
 
   // Freeform state
-  private freeformBuffer = "";
+  private freeformInput: InputRenderable | null = null;
+  private freeformHintText: TextRenderable | null = null;
 
   constructor(renderer: CliRenderer) {
     this.renderer = renderer;
@@ -131,19 +133,19 @@ export class DialoguePanel {
         this.handleOptionsKey(key);
         break;
       case "freeform":
-        this.handleFreeformKey(key);
+        // InputRenderable handles all input in freeform mode
         break;
     }
   }
 
   clear(): void {
     this.stopTypewriter();
+    this.cleanupFreeformInput();
     this.state = "idle";
     this.textContent.content = "";
     this.fullSpeech = "";
     this.revealedChars = 0;
     this.currentOptions = [];
-    this.freeformBuffer = "";
     this.speakResolve = null;
     this.optionResolve = null;
     this.container.title = " Dialogue ";
@@ -200,12 +202,12 @@ export class DialoguePanel {
 
   private handleOptionsKey(key: KeyEvent): void {
     switch (key.name) {
-      case "ArrowUp": case "k":
+      case "up": case "k":
         this.selectedIndex = Math.max(0, this.selectedIndex - 1);
         this.renderOptions();
         break;
 
-      case "ArrowDown": case "j":
+      case "down": case "j":
         // +1 for the freeform slot
         this.selectedIndex = Math.min(this.currentOptions.length, this.selectedIndex + 1);
         this.renderOptions();
@@ -219,7 +221,7 @@ export class DialoguePanel {
         break;
       }
 
-      case "Enter":
+      case "return":
         if (this.selectedIndex < this.currentOptions.length) {
           this.resolveOption({ type: "option", index: this.selectedIndex });
         } else {
@@ -228,7 +230,7 @@ export class DialoguePanel {
         }
         break;
 
-      case "Tab":
+      case "tab":
         this.enterFreeform();
         break;
 
@@ -271,47 +273,62 @@ export class DialoguePanel {
 
   private enterFreeform(): void {
     this.state = "freeform";
-    this.freeformBuffer = "";
-    this.renderFreeform();
-  }
 
-  private handleFreeformKey(key: KeyEvent): void {
-    if (key.name === "escape") {
-      // Back to options
-      this.state = "options";
-      this.renderOptions();
-      return;
-    }
+    // Show the speech text above the input
+    this.textContent.content = `  "${this.fullSpeech}"\n`;
 
-    if (key.name === "Enter") {
-      if (this.freeformBuffer.trim().length > 0) {
-        this.resolveOption({ type: "freeform", text: this.freeformBuffer.trim() });
+    // Create InputRenderable for freeform text entry
+    this.freeformInput = new InputRenderable(this.renderer, {
+      placeholder: "Type your response...",
+      textColor: "#c0caf5",
+      backgroundColor: "#0a0a1a",
+      focusedTextColor: "#c0caf5",
+      focusedBackgroundColor: "#0a0a1a",
+      placeholderColor: "#414868",
+    });
+
+    // Wire enter to submit
+    this.freeformInput.on("enter", () => {
+      const text = this.freeformInput?.value.trim() ?? "";
+      if (text.length > 0) {
+        this.cleanupFreeformInput();
+        this.resolveOption({ type: "freeform", text });
       }
-      return;
-    }
+    });
 
-    if (key.name === "Backspace") {
-      this.freeformBuffer = this.freeformBuffer.slice(0, -1);
-      this.renderFreeform();
-      return;
-    }
+    // Wire escape to go back to options
+    this.freeformInput.onKeyDown = (key) => {
+      if (key.name === "escape") {
+        this.cleanupFreeformInput();
+        this.state = "options";
+        this.renderOptions();
+      }
+    };
 
-    // Regular character input — single printable character
-    if (key.name.length === 1 && !key.ctrl && !key.meta) {
-      this.freeformBuffer += key.name;
-      this.renderFreeform();
-    }
+    // Create hint text
+    this.freeformHintText = new TextRenderable(this.renderer, {
+      id: "dialogue-freeform-hint",
+      content: "\n  [Enter] Send  [Escape] Back to options",
+      fg: "#414868",
+    });
+
+    // Add input and hint to the container
+    this.container.add(this.freeformInput);
+    this.container.add(this.freeformHintText);
+    this.freeformInput.focus();
+    this.renderer.requestRender();
   }
 
-  private renderFreeform(): void {
-    const lines: string[] = [];
-    lines.push(`  "${this.fullSpeech}"`);
-    lines.push("");
-    lines.push(`  > ${this.freeformBuffer}█`);
-    lines.push("");
-    lines.push("  [Enter] Send  [Escape] Back to options");
-    this.textContent.content = lines.join("\n");
-    this.renderer.requestRender();
+  private cleanupFreeformInput(): void {
+    if (this.freeformInput) {
+      this.freeformInput.blur();
+      this.container.remove(this.freeformInput.id);
+      this.freeformInput = null;
+    }
+    if (this.freeformHintText) {
+      this.container.remove("dialogue-freeform-hint");
+      this.freeformHintText = null;
+    }
   }
 
   // ── Helpers ──────────────────────────────────────────────
