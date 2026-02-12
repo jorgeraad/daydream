@@ -15,7 +15,6 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 ## In Progress
 
 ## Completed (Pending Merge)
-- **20260212122011 - Add Zod Validation to AI Response Parsing** | Branch: `main` | Completed: 2026-02-12
 
 ## Commit Queue
 
@@ -23,7 +22,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 > Add yourself to the END of the list. Remove yourself after committing.
 > See `/task-commit` for the full procedure.
 
-1. `deep-cedar` | Task: 20260212122011 | Queued: 2026-02-12 12:44:28 EST
+_Empty — no agents waiting to commit._
 
 ## Ready
 - **20260212114211 - TUI Layout** — Multi-panel TUI shell (viewport + side panel + narrative bar) | Touches: `packages/renderer/src/, apps/game/src/`
