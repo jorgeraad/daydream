@@ -8,7 +8,8 @@
     "@daydream/audio": "workspace:*",
     "@daydream/renderer": "workspace:*",
     "@logtape/logtape": "catalog:",
-    "@logtape/file": "catalog:"
+    "@logtape/file": "catalog:",
+    "zod": "catalog:"
   },
   "scripts": {
     "dev": "bun run --watch src/index.ts",

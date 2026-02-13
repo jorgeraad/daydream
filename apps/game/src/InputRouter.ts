@@ -16,6 +16,9 @@ export interface MovementContext {
   tryMove: (dx: number, dy: number) => void;
 }
 
+/** Callback fired when an audio toggle key is pressed during exploration. */
+export type AudioToggleHandler = (toggle: "music" | "sfx") => void;
+
 /**
  * Routes keyboard input to appropriate handlers based on the current game mode.
  * Emits events via EventBus for cross-system communication.
@@ -27,6 +30,7 @@ export class InputRouter {
   private dialogueHandler: ((key: KeyEvent) => void) | null = null;
   private mapHandler: ((key: KeyEvent) => void) | null = null;
   private portalHandler: ((key: KeyEvent) => void) | null = null;
+  private audioToggleHandler: AudioToggleHandler | null = null;
 
   constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -57,6 +61,10 @@ export class InputRouter {
 
   setPortalHandler(handler: ((key: KeyEvent) => void) | null): void {
     this.portalHandler = handler;
+  }
+
+  setAudioToggleHandler(handler: AudioToggleHandler | null): void {
+    this.audioToggleHandler = handler;
   }
 
   handleKey(key: KeyEvent): void {
@@ -100,8 +108,16 @@ export class InputRouter {
         this.interactWithNearby();
         return;
 
-      // Overlays
+      // Audio toggles
       case "m":
+        this.audioToggleHandler?.("music");
+        return;
+      case "n":
+        this.audioToggleHandler?.("sfx");
+        return;
+
+      // Overlays
+      case "M":
         this.setMode("map");
         return;
       case "p":

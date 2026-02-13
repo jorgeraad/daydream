@@ -1,6 +1,8 @@
 import { mkdirSync, readFileSync, writeFileSync, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
+import { AudioSettingsSchema, DEFAULT_AUDIO_SETTINGS } from "./AudioSettings.ts";
+import type { AudioSettings } from "./AudioSettings.ts";
 
 /** Provider registry — maps provider name to env var fallback */
 const PROVIDERS: Record<string, { envVar: string; label: string }> = {
@@ -80,6 +82,28 @@ export class SettingsManager {
   static maskApiKey(key: string): string {
     if (key.length <= 12) return "****";
     return `${key.slice(0, 6)}...${key.slice(-4)}`;
+  }
+
+  /**
+   * Get the current audio settings. If no audio section exists in settings.json,
+   * returns sensible defaults. Validates with Zod on every read.
+   */
+  getAudioSettings(): AudioSettings {
+    const raw = this.get<Record<string, unknown>>("audio");
+    if (!raw) return DEFAULT_AUDIO_SETTINGS;
+    const result = AudioSettingsSchema.safeParse(raw);
+    return result.success ? result.data : DEFAULT_AUDIO_SETTINGS;
+  }
+
+  /**
+   * Save audio settings to the `audio` section of settings.json.
+   * Validates with Zod before writing.
+   */
+  setAudioSettings(audio: Partial<AudioSettings>): void {
+    const current = this.getAudioSettings();
+    const merged = { ...current, ...audio };
+    const validated = AudioSettingsSchema.parse(merged);
+    this.set("audio", validated);
   }
 
   private writeCredentials(): void {

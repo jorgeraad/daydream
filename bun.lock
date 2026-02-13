@@ -18,6 +18,7 @@
         "@daydream/renderer": "workspace:*",
         "@logtape/file": "catalog:",
         "@logtape/logtape": "catalog:",
+        "zod": "catalog:",
       },
     },
     "packages/ai": {
@@ -35,6 +36,7 @@
       "name": "@daydream/audio",
       "version": "0.0.1",
       "dependencies": {
+        "@daydream/engine": "workspace:*",
         "zod": "catalog:",
       },
     },

@@ -415,6 +415,7 @@ interface GameplayOptions {
   generator?: WorldGenerator;
   saveManager?: SaveManager;
   spriteRegistry?: SpriteRegistry;
+  settingsManager?: SettingsManager;
 }
 
 function startGameplay(opts: GameplayOptions): void {
@@ -513,6 +514,9 @@ function startGameplay(opts: GameplayOptions): void {
   const playerInfo = detectPlayer();
   const musicPlayer = createAudioPlayer(playerInfo);
   const sfxPlayer = createAudioPlayer(playerInfo);
+
+  // Load audio settings from SettingsManager (if available)
+  const audioSettings = opts.settingsManager?.getAudioSettings();
   const audioManager = new AudioManager({
     eventBus,
     musicPlayer,
@@ -522,6 +526,26 @@ function startGameplay(opts: GameplayOptions): void {
       if (!z || !z.musicSpec) return null;
       return z.musicSpec as MusicSpec;
     },
+    config: audioSettings ? {
+      enabled: audioSettings.enabled,
+      musicEnabled: audioSettings.musicEnabled,
+      sfxEnabled: audioSettings.sfxEnabled,
+      musicVolume: audioSettings.musicVolume,
+      sfxVolume: audioSettings.sfxVolume,
+    } : undefined,
+  });
+
+  // Wire audio toggle keys (m = music, n = SFX) to AudioManager + settings persistence
+  inputRouter.setAudioToggleHandler((toggle) => {
+    if (toggle === "music") {
+      const newEnabled = !audioManager.isMusicEnabled();
+      audioManager.setMusicEnabled(newEnabled);
+      opts.settingsManager?.setAudioSettings({ musicEnabled: newEnabled });
+    } else {
+      const newEnabled = !audioManager.isSFXEnabled();
+      audioManager.setSFXEnabled(newEnabled);
+      opts.settingsManager?.setAudioSettings({ sfxEnabled: newEnabled });
+    }
   });
 
   // Emit initial zone:entered so music starts for the first zone
@@ -1140,6 +1164,7 @@ async function loadAndStartWorld(
       generator,
       saveManager,
       spriteRegistry,
+      settingsManager,
     });
 
     // Start auto-save for loaded worlds
@@ -1334,6 +1359,7 @@ async function generateAndStartWorld(
     generator,
     saveManager,
     spriteRegistry,
+    settingsManager,
   });
 }
 

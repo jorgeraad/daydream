@@ -5,6 +5,7 @@ import {
 } from "@opentui/core";
 import { MaskedInput } from "@daydream/renderer";
 import { SettingsManager, type ProviderInfo } from "./SettingsManager.ts";
+import type { AudioSettings } from "./AudioSettings.ts";
 import type { LogLevel } from "@logtape/logtape";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -12,8 +13,14 @@ import { homedir } from "node:os";
 const LOG_LEVELS: LogLevel[] = ["trace", "debug", "info", "warning", "error", "fatal"];
 const LOG_FORMATS = ["text", "json"] as const;
 
+/** Volume steps for cycling with left/right arrows. */
+const VOLUME_STEP = 0.1;
+
 /** Callback fired when a logging setting changes so the caller can reconfigure. */
 export type OnLoggingChange = (key: "level" | "format", value: string) => void;
+
+/** Callback fired when an audio setting changes so the caller can propagate to AudioManager. */
+export type OnAudioChange = (settings: AudioSettings) => void;
 
 export class SettingsScreen {
   private container: BoxRenderable;
@@ -22,6 +29,12 @@ export class SettingsScreen {
   private logLevelText!: TextRenderable;
   private logFormatText!: TextRenderable;
   private logPathText!: TextRenderable;
+  private audioHeaderText!: TextRenderable;
+  private audioMusicText!: TextRenderable;
+  private audioSFXText!: TextRenderable;
+  private audioMasterVolText!: TextRenderable;
+  private audioMusicVolText!: TextRenderable;
+  private audioSFXVolText!: TextRenderable;
   private instructionText: TextRenderable;
   private providers: ProviderInfo[] = [];
   private selectedIndex = 0;
@@ -29,20 +42,38 @@ export class SettingsScreen {
   private maskedInput: MaskedInput | null = null;
   private resolve: (() => void) | null = null;
   private onLoggingChange: OnLoggingChange | null = null;
+  private onAudioChange: OnAudioChange | null = null;
 
-  /** Total selectable items: providers + 2 logging options (level, format). */
+  // Section boundaries computed at show() time
+  private loggingStart = 0;  // index of first logging item
+  private audioStart = 0;    // index of first audio item
+
+  /**
+   * Total selectable items:
+   *   providers + 2 logging (level, format) + 5 audio (music toggle, SFX toggle, master vol, music vol, SFX vol)
+   */
   private get totalItems(): number {
-    return this.providers.length + 2;
+    return this.providers.length + 2 + 5;
   }
 
   /** Whether the current selection is in the logging section. */
   private get isLoggingItem(): boolean {
-    return this.selectedIndex >= this.providers.length;
+    return this.selectedIndex >= this.loggingStart && this.selectedIndex < this.audioStart;
   }
 
   /** Index within the logging section (0 = level, 1 = format). */
   private get loggingItemIndex(): number {
-    return this.selectedIndex - this.providers.length;
+    return this.selectedIndex - this.loggingStart;
+  }
+
+  /** Whether the current selection is in the audio section. */
+  private get isAudioItem(): boolean {
+    return this.selectedIndex >= this.audioStart;
+  }
+
+  /** Index within the audio section (0=music, 1=sfx, 2=master vol, 3=music vol, 4=sfx vol). */
+  private get audioItemIndex(): number {
+    return this.selectedIndex - this.audioStart;
   }
 
   constructor(
@@ -62,7 +93,7 @@ export class SettingsScreen {
     // Title
     const title = new TextRenderable(renderer, {
       id: "settings-title",
-      content: "\n  ── Settings ──\n\n",
+      content: "\n  -- Settings --\n\n",
       fg: "#7aa2f7",
     });
     this.container.add(title);
@@ -79,11 +110,20 @@ export class SettingsScreen {
     this.onLoggingChange = cb;
   }
 
+  /** Set a callback for when audio settings change. */
+  setOnAudioChange(cb: OnAudioChange): void {
+    this.onAudioChange = cb;
+  }
+
   /** Show the settings screen and wait for the user to press Escape. */
   async show(): Promise<void> {
     this.providers = this.settingsManager.getProviders();
     this.selectedIndex = 0;
     this.editing = false;
+
+    // Compute section boundaries
+    this.loggingStart = this.providers.length;
+    this.audioStart = this.loggingStart + 2;
 
     // API Keys section header
     const apiHeader = new TextRenderable(this.renderer, {
@@ -133,6 +173,49 @@ export class SettingsScreen {
     });
     this.container.add(this.logPathText);
 
+    // Audio section
+    this.audioHeaderText = new TextRenderable(this.renderer, {
+      id: "settings-audio-header",
+      content: "\n  Audio",
+      fg: "#7aa2f7",
+    });
+    this.container.add(this.audioHeaderText);
+
+    this.audioMusicText = new TextRenderable(this.renderer, {
+      id: "settings-audio-music",
+      content: "",
+      fg: "#c0caf5",
+    });
+    this.container.add(this.audioMusicText);
+
+    this.audioSFXText = new TextRenderable(this.renderer, {
+      id: "settings-audio-sfx",
+      content: "",
+      fg: "#c0caf5",
+    });
+    this.container.add(this.audioSFXText);
+
+    this.audioMasterVolText = new TextRenderable(this.renderer, {
+      id: "settings-audio-master-vol",
+      content: "",
+      fg: "#c0caf5",
+    });
+    this.container.add(this.audioMasterVolText);
+
+    this.audioMusicVolText = new TextRenderable(this.renderer, {
+      id: "settings-audio-music-vol",
+      content: "",
+      fg: "#c0caf5",
+    });
+    this.container.add(this.audioMusicVolText);
+
+    this.audioSFXVolText = new TextRenderable(this.renderer, {
+      id: "settings-audio-sfx-vol",
+      content: "",
+      fg: "#c0caf5",
+    });
+    this.container.add(this.audioSFXVolText);
+
     this.container.add(this.instructionText);
     this.updateDisplay();
 
@@ -161,10 +244,10 @@ export class SettingsScreen {
     for (let i = 0; i < this.providers.length; i++) {
       const p = this.providers[i]!;
       const selected = i === this.selectedIndex;
-      const prefix = selected ? "  ▸ " : "    ";
+      const prefix = selected ? "  > " : "    ";
 
       if (this.editing && selected) {
-        // When editing, hide the provider text — MaskedInput overlay is visible instead
+        // When editing, hide the provider text -- MaskedInput overlay is visible instead
         this.providerTexts[i]!.content = "";
       } else {
         const apiKey = this.settingsManager.getApiKey(p.name);
@@ -180,11 +263,11 @@ export class SettingsScreen {
     const currentLevel = this.settingsManager.get<string>("logging.level") ?? "info";
     const currentFormat = this.settingsManager.get<string>("logging.format") ?? "text";
 
-    const levelSelected = this.loggingItemIndex === 0;
-    const formatSelected = this.loggingItemIndex === 1;
+    const levelSelected = this.isLoggingItem && this.loggingItemIndex === 0;
+    const formatSelected = this.isLoggingItem && this.loggingItemIndex === 1;
 
-    const levelPrefix = levelSelected ? "  ▸ " : "    ";
-    const formatPrefix = formatSelected ? "  ▸ " : "    ";
+    const levelPrefix = levelSelected ? "  > " : "    ";
+    const formatPrefix = formatSelected ? "  > " : "    ";
 
     this.logLevelText.content = `${levelPrefix}Level: ${currentLevel}`;
     this.logLevelText.fg = levelSelected ? "#c0caf5" : "#565f89";
@@ -192,11 +275,44 @@ export class SettingsScreen {
     this.logFormatText.content = `${formatPrefix}Format: ${currentFormat}`;
     this.logFormatText.fg = formatSelected ? "#c0caf5" : "#565f89";
 
+    // Audio rows
+    const audio = this.settingsManager.getAudioSettings();
+
+    const musicSelected = this.isAudioItem && this.audioItemIndex === 0;
+    const sfxSelected = this.isAudioItem && this.audioItemIndex === 1;
+    const masterVolSelected = this.isAudioItem && this.audioItemIndex === 2;
+    const musicVolSelected = this.isAudioItem && this.audioItemIndex === 3;
+    const sfxVolSelected = this.isAudioItem && this.audioItemIndex === 4;
+
+    this.audioMusicText.content = `${musicSelected ? "  > " : "    "}Music: ${audio.musicEnabled ? "ON" : "OFF"}`;
+    this.audioMusicText.fg = musicSelected ? "#c0caf5" : "#565f89";
+
+    this.audioSFXText.content = `${sfxSelected ? "  > " : "    "}SFX:   ${audio.sfxEnabled ? "ON" : "OFF"}`;
+    this.audioSFXText.fg = sfxSelected ? "#c0caf5" : "#565f89";
+
+    this.audioMasterVolText.content = `${masterVolSelected ? "  > " : "    "}Master: ${this.renderVolumeBar(audio.masterVolume)}`;
+    this.audioMasterVolText.fg = masterVolSelected ? "#c0caf5" : "#565f89";
+
+    this.audioMusicVolText.content = `${musicVolSelected ? "  > " : "    "}Music:  ${this.renderVolumeBar(audio.musicVolume)}`;
+    this.audioMusicVolText.fg = musicVolSelected ? "#c0caf5" : "#565f89";
+
+    this.audioSFXVolText.content = `${sfxVolSelected ? "  > " : "    "}SFX:    ${this.renderVolumeBar(audio.sfxVolume)}`;
+    this.audioSFXVolText.fg = sfxVolSelected ? "#c0caf5" : "#565f89";
+
     // Instructions
     if (this.editing) {
       this.instructionText.content = "\n\n  [Enter] Save  [Esc] Cancel";
+    } else if (this.isAudioItem) {
+      const idx = this.audioItemIndex;
+      if (idx <= 1) {
+        // Toggle items
+        this.instructionText.content = "\n\n  [Enter] Toggle  [Esc] Back";
+      } else {
+        // Volume items
+        this.instructionText.content = "\n\n  [</>] Adjust volume  [Esc] Back";
+      }
     } else if (this.isLoggingItem) {
-      this.instructionText.content = "\n\n  [Enter/→] Next option  [←] Prev option  [Esc] Back";
+      this.instructionText.content = "\n\n  [Enter/>] Next option  [<] Prev option  [Esc] Back";
     } else {
       this.instructionText.content = "\n\n  [Enter] Edit key  [d] Delete key  [Esc] Back";
     }
@@ -204,9 +320,19 @@ export class SettingsScreen {
     this.renderer.requestRender();
   }
 
+  /** Render a visual volume bar: [========--] 80% */
+  private renderVolumeBar(value: number): string {
+    const barWidth = 10;
+    const filled = Math.round(value * barWidth);
+    const empty = barWidth - filled;
+    const bar = "=".repeat(filled) + "-".repeat(empty);
+    const pct = Math.round(value * 100);
+    return `[${bar}] ${pct}%`;
+  }
+
   private handleKey(key: { name: string; raw?: string; shift?: boolean }): void {
     if (this.editing) {
-      // MaskedInput handles all input in edit mode — container should not interfere
+      // MaskedInput handles all input in edit mode -- container should not interfere
       return;
     }
     this.handleNavigationKey(key);
@@ -228,6 +354,12 @@ export class SettingsScreen {
     if (key.name === "down") {
       this.selectedIndex = Math.min(this.totalItems - 1, this.selectedIndex + 1);
       this.updateDisplay();
+      return;
+    }
+
+    // Audio items
+    if (this.isAudioItem) {
+      this.handleAudioKey(key);
       return;
     }
 
@@ -260,6 +392,61 @@ export class SettingsScreen {
     }
   }
 
+  private handleAudioKey(key: { name: string; raw?: string }): void {
+    const idx = this.audioItemIndex;
+    const audio = this.settingsManager.getAudioSettings();
+
+    if (idx === 0) {
+      // Music toggle
+      if (key.name === "return" || key.name === "right" || key.name === "left") {
+        this.settingsManager.setAudioSettings({ musicEnabled: !audio.musicEnabled });
+        this.notifyAudioChange();
+        this.updateDisplay();
+      }
+    } else if (idx === 1) {
+      // SFX toggle
+      if (key.name === "return" || key.name === "right" || key.name === "left") {
+        this.settingsManager.setAudioSettings({ sfxEnabled: !audio.sfxEnabled });
+        this.notifyAudioChange();
+        this.updateDisplay();
+      }
+    } else if (idx === 2) {
+      // Master volume
+      if (key.name === "right") {
+        this.adjustVolume("masterVolume", audio.masterVolume, VOLUME_STEP);
+      } else if (key.name === "left") {
+        this.adjustVolume("masterVolume", audio.masterVolume, -VOLUME_STEP);
+      }
+    } else if (idx === 3) {
+      // Music volume
+      if (key.name === "right") {
+        this.adjustVolume("musicVolume", audio.musicVolume, VOLUME_STEP);
+      } else if (key.name === "left") {
+        this.adjustVolume("musicVolume", audio.musicVolume, -VOLUME_STEP);
+      }
+    } else if (idx === 4) {
+      // SFX volume
+      if (key.name === "right") {
+        this.adjustVolume("sfxVolume", audio.sfxVolume, VOLUME_STEP);
+      } else if (key.name === "left") {
+        this.adjustVolume("sfxVolume", audio.sfxVolume, -VOLUME_STEP);
+      }
+    }
+  }
+
+  private adjustVolume(key: keyof Pick<AudioSettings, "masterVolume" | "musicVolume" | "sfxVolume">, current: number, delta: number): void {
+    const newValue = Math.max(0, Math.min(1, Math.round((current + delta) * 10) / 10));
+    this.settingsManager.setAudioSettings({ [key]: newValue });
+    this.notifyAudioChange();
+    this.updateDisplay();
+  }
+
+  private notifyAudioChange(): void {
+    if (this.onAudioChange) {
+      this.onAudioChange(this.settingsManager.getAudioSettings());
+    }
+  }
+
   private startEditing(): void {
     this.editing = true;
     this.updateDisplay();
@@ -286,7 +473,7 @@ export class SettingsScreen {
 
     // Insert the MaskedInput container after the selected provider's TextRenderable
     const providerText = this.providerTexts[this.selectedIndex]!;
-    // insertBefore the next sibling — insert after the logging header if it's the last provider
+    // insertBefore the next sibling -- insert after the logging header if it's the last provider
     const nextSibling = this.selectedIndex < this.providers.length - 1
       ? this.providerTexts[this.selectedIndex + 1]!
       : this.loggingHeaderText;
