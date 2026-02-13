@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 20:06:14 EST |
 | **Last Modified**  | 2026-02-12 20:17:51 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | bright-crane |
 | **Blocked-By**     | 20260212200610 |
@@ -45,3 +45,6 @@ Starting work on branch `main`. Reviewed PixelBuffer (SpriteCell = string | null
 
 ### 2026-02-12 20:17:51 EST
 Completed. Created `encode.ts` with `encodeHalfBlocks` function following design doc Section 3.3 algorithm. Key implementation details: (1) uses `Math.ceil(height / 2)` for cellHeight to handle odd-height pixel buffers gracefully -- out-of-bounds getPixel returns null which falls back to defaultBg, (2) includes RGBA cache (`Map<string, RGBA>`) to avoid redundant `RGBA.fromHex()` calls for repeated colors in the viewport, (3) when top === bottom uses full block with same fg/bg, otherwise uses upper half block with fg=top bg=bottom. Exported from sprites/index.ts. Typecheck passes (pre-existing errors in test files are unrelated).
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

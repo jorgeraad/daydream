@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 20:06:16 EST |
 | **Last Modified**  | 2026-02-12 20:20:33 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | pure-maple |
 | **Blocked-By**     | 20260212200610, 20260212200612 |
@@ -65,3 +65,6 @@ Task complete. All acceptance criteria met. Changes:
 - Exported `SpriteLookup` and `SpriteLookupResult` from engine index.ts
 - TypeScript compiles cleanly (no new errors; pre-existing test file errors only)
 - All 217 engine tests pass (14 original ZoneBuilder + 19 new sprite tests = 33 total ZoneBuilder tests)
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

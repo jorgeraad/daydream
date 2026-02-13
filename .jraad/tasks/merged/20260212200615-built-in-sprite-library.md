@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 20:06:15 EST |
 | **Last Modified**  | 2026-02-12 20:20:04 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | mild-lynx |
 | **Blocked-By**     | 20260212200610 |
@@ -59,3 +59,6 @@ Completed. Created 29 sprite templates across 4 files:
 - **library/index.ts**: barrel exports, ALL_SPRITES (29 entries), SPRITE_BY_ID map, OBJECT_TYPE_TO_SPRITE (79 entries), NPC_ROLE_TO_SPRITE (42 entries)
 - Updated `sprites/index.ts` to re-export all library contents
 All pixel arrays validated (correct dimensions), all anchors within bounds, all mapping table values resolve to valid sprite IDs. TypeScript compiles cleanly (no new errors).
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

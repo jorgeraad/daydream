@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 19:59:06 EST |
 | **Last Modified**  | 2026-02-12 20:30:57 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | fast-heron |
 | **Blocked-By**     | 20260212195902 |
@@ -52,3 +52,6 @@ Starting work on branch `main`. Agent: fast-heron. Blocker 20260212195902 is mer
 
 ### 2026-02-12 20:30:57 EST
 Completed. Created EdgeCoherence.ts with all core functions: classifyTerrain (char-based heuristic for 5 terrain types), extractEdgeSignature (reads boundary row/column from ground layer), extractEdgeSignatureFromBuildResult (variant for build pipeline), blendEdge (hard extension for water/path, soft color lerp for ground, no-op for wall/building), applyEdgeCoherence (multi-edge wrapper), lerpColor (hex interpolation), oppositeDirection. Integrated into ZoneBuilder.build() via optional neighborEdges and edgeBlendDepth parameters -- blending runs as step 7 after layers are built but before return. All types and functions exported from index.ts. 25 tests covering terrain classification, edge extraction from all 4 directions, water/path hard blending, ground color interpolation, wall/building no-blend, multi-edge application, and default depth from ZoneConfig. All 108 world package tests pass.
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

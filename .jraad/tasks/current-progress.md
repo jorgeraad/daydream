@@ -35,6 +35,8 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `audio` | 0 | 7 | In Progress |
 | `logging` | 6 | 6 | Complete |
 | `text-input` | 4 | 4 | Complete |
+| `multi-zone-world` | 6 | 7 | In Progress |
+| `advanced-sprites` | 7 | 10 | In Progress |
 
 ## In Progress
 - **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/design-docs/20260212143327-multi-zone-world.md` | Branch: `main` | Agent: swift-kestrel
@@ -56,6 +58,9 @@ _Empty — no agents waiting to commit._
 
 - **20260212125928 - Loading Animations** — Enhanced loading screen animations | Touches: `packages/renderer/src/ui/LoadingScreen.ts`
 - **20260212145509 - Animation Types & Manager Core** — Animation interface, CellOverride, AnimationManager with requestLive/dropLive lifecycle | Touches: `packages/renderer/src/animation/`
+- **20260212195917 - New Location Prompt (Portal)** — New location portal prompt UI | Touches: `apps/game/src/`, `packages/renderer/src/ui/`
+- **20260212200617 - TileRenderer Pixel Rewrite** — Rewrite TileRenderer to use pixel sprites + half-block encoding | Touches: `packages/renderer/src/TileRenderer.ts`
+- **20260212125927 - Mini-Map Rendering** — Mini-map display component | Touches: `packages/renderer/src/ui/`
 
 ## Up Next
 - **20260212145506 - Audio Package Scaffolding & Playback** — Blocked-By: 20260212133127
@@ -68,5 +73,7 @@ _Empty — no agents waiting to commit._
 - **20260212145546 - Time-of-Day Atmosphere Overlay** — Blocked-By: 20260212145509
 - **20260212145602 - TileRenderer Animation Integration & Game Wiring** — Blocked-By: 20260212145509, 20260212145529, 20260212145546
 
-- **20260212125927 - Mini-Map Rendering** — Blocked-By: 20260212125925
-- **20260212125929 - E2E Smoke Test** — Blocked-By: 20260212114213, 20260212114216, 20260212125925, 20260212125926
+- **20260212200618 - GameShell & WorldGenerator Sprite Integration** — Blocked-By: 20260212200616, 20260212200617
+- **20260212200619 - Sprite System Tests** — Blocked-By: 20260212200617
+
+- **20260212125929 - E2E Smoke Test** — Blocked-By: 20260212114213, 20260212114216, 20260212195902, 20260212125926
