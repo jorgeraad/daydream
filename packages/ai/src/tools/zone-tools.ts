@@ -94,12 +94,37 @@ export const ZoneSpecSchema = z.object({
     .describe("Story hooks, mysteries, or interesting details in this zone"),
   exits: z
     .object({
-      north: z.string().describe("What lies to the north").optional(),
-      south: z.string().describe("What lies to the south").optional(),
-      east: z.string().describe("What lies to the east").optional(),
-      west: z.string().describe("What lies to the west").optional(),
+      north: z
+        .string()
+        .describe(
+          "What lies to the north — describe terrain, features, or hints a traveler would notice approaching the northern edge (e.g., 'a cobblestone road continues north toward distant towers')",
+        )
+        .optional(),
+      south: z
+        .string()
+        .describe(
+          "What lies to the south — describe terrain, features, or hints a traveler would notice approaching the southern edge (e.g., 'dense forest thickens to the south')",
+        )
+        .optional(),
+      east: z
+        .string()
+        .describe(
+          "What lies to the east — describe terrain, features, or hints a traveler would notice approaching the eastern edge (e.g., 'a river flows eastward into marshland')",
+        )
+        .optional(),
+      west: z
+        .string()
+        .describe(
+          "What lies to the west — describe terrain, features, or hints a traveler would notice approaching the western edge (e.g., 'rocky hills rise to the west')",
+        )
+        .optional(),
     })
-    .describe("Brief hints about what's in each direction (for adjacent zone generation)")
+    .describe(
+      "Hints about what's in each cardinal direction, used to generate coherent adjacent zones. " +
+        "Describe the terrain and features visible at each edge of this zone — these become edge features " +
+        "that neighboring zones must match for continuity. Include any roads, rivers, paths, or landmarks " +
+        "that reach the zone boundary.",
+    )
     .optional(),
 });
 

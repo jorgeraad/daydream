@@ -33,6 +33,8 @@ export { GameInput } from "./ui/GameInput.ts";
 export type { GameInputConfig } from "./ui/GameInput.ts";
 export { MaskedInput } from "./ui/MaskedInput.ts";
 export type { MaskedInputConfig } from "./ui/MaskedInput.ts";
+export { LocationList } from "./ui/LocationList.ts";
+export type { LocationEntry } from "./ui/LocationList.ts";
 
 // Sprite system
 export type {

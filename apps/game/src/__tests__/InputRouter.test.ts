@@ -94,10 +94,10 @@ describe("InputRouter", () => {
         },
       });
 
-      router.handleKey({ name: "ArrowUp" });
-      router.handleKey({ name: "ArrowDown" });
-      router.handleKey({ name: "ArrowLeft" });
-      router.handleKey({ name: "ArrowRight" });
+      router.handleKey({ name: "up" });
+      router.handleKey({ name: "down" });
+      router.handleKey({ name: "left" });
+      router.handleKey({ name: "right" });
       router.handleKey({ name: "w" });
       router.handleKey({ name: "a" });
       router.handleKey({ name: "s" });
@@ -173,10 +173,10 @@ describe("InputRouter", () => {
 
       router.setMode("dialogue");
       router.handleKey({ name: "a" });
-      router.handleKey({ name: "Enter" });
+      router.handleKey({ name: "return" });
       router.handleKey({ name: "escape" });
 
-      expect(received).toEqual(["a", "Enter", "escape"]);
+      expect(received).toEqual(["a", "return", "escape"]);
     });
 
     test("setDialogueHandler(null) clears handler", () => {

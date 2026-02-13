@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { ZoneBuilder, type ZoneBuildSpec, type BuildingVisual, type ObjectVisual } from "./ZoneBuilder.ts";
+import { ZoneBuilder, type ZoneBuildSpec, type BuildingVisual, type ObjectVisual, type SpriteLookup } from "./ZoneBuilder.ts";
 import type { BiomePalette } from "../types.ts";
 
 // ── Test fixtures ────────────────────────────────────────────
@@ -239,5 +239,310 @@ describe("ZoneBuilder", () => {
 
     // "bush" matches the palette vegetation key
     expect(objects.data[10 * 80 + 10]!.char).toBe("※");
+  });
+
+  test("always includes sprites array in result", () => {
+    const result = builder.build(makeSpec(), "zone_0_0", testPalette);
+    expect(result.sprites).toBeInstanceOf(Array);
+    expect(result.sprites).toHaveLength(0);
+  });
+});
+
+// ── Sprite placement tests ──────────────────────────────────
+
+describe("ZoneBuilder with SpriteLookup", () => {
+  const builder = new ZoneBuilder(testBuildingVisuals, testObjectVisuals);
+
+  const testLookup: SpriteLookup = {
+    resolve(objectType: string) {
+      if (objectType === "tree_oak") {
+        return {
+          templateId: "sprite_tree_oak",
+          collisionTiles: [{ dx: 0, dy: 0 }, { dx: 1, dy: 0 }],
+        };
+      }
+      if (objectType === "rock_large") {
+        return {
+          templateId: "sprite_rock",
+          collisionTiles: [{ dx: 0, dy: 0 }],
+        };
+      }
+      return undefined;
+    },
+    resolveBuilding(buildingType: string) {
+      if (buildingType === "house") {
+        return {
+          templateId: "sprite_house",
+          collisionTiles: [
+            { dx: 0, dy: 0 }, { dx: 1, dy: 0 }, { dx: 2, dy: 0 },
+            { dx: 0, dy: 1 }, { dx: 1, dy: 1 }, { dx: 2, dy: 1 },
+          ],
+        };
+      }
+      return undefined;
+    },
+    resolveNpc(role: string) {
+      if (role === "guard") {
+        return {
+          templateId: "sprite_guard",
+          collisionTiles: [{ dx: 0, dy: 0 }],
+        };
+      }
+      return undefined;
+    },
+  };
+
+  test("places object as sprite when lookup resolves", () => {
+    const spec = makeSpec({
+      objects: [{ type: "tree_oak", position: { x: 10, y: 10 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    // Should have a sprite instance instead of a tile
+    expect(result.sprites).toHaveLength(1);
+    expect(result.sprites![0]!.templateId).toBe("sprite_tree_oak");
+    expect(result.sprites![0]!.position).toEqual({ x: 10, y: 10 });
+
+    // Object layer should NOT have the single-cell tile
+    const objects = result.layers[1]!;
+    expect(objects.data[10 * 80 + 10]!.char).toBe("");
+  });
+
+  test("marks sprite collision tiles as blocked", () => {
+    const spec = makeSpec({
+      objects: [{ type: "tree_oak", position: { x: 10, y: 10 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+    const collision = result.layers[2]!;
+
+    // tree_oak sprite blocks (10,10) and (11,10)
+    expect(collision.data[10 * 80 + 10]!.char).toBe("1");
+    expect(collision.data[10 * 80 + 11]!.char).toBe("1");
+  });
+
+  test("falls back to single-cell when sprite lookup returns undefined", () => {
+    const spec = makeSpec({
+      objects: [{ type: "sign", position: { x: 20, y: 20 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    // "sign" not in lookup, so should fall back to single-cell
+    expect(result.sprites).toHaveLength(0);
+    const objects = result.layers[1]!;
+    expect(objects.data[20 * 80 + 20]!.char).toBe("┬");
+  });
+
+  test("falls back to single-cell when sprite collision tiles overlap", () => {
+    const spec = makeSpec({
+      objects: [
+        { type: "tree_oak", position: { x: 10, y: 10 } },
+        // Second tree at x=12 — its anchor at (12,10) is clear, but collision dx:1 → (13,10) is also clear
+        // so it will succeed. Use x=11 instead, whose own position is blocked by first tree's dx:1.
+        { type: "tree_oak", position: { x: 11, y: 10 } },
+      ],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    // First tree placed as sprite
+    expect(result.sprites).toHaveLength(1);
+    expect(result.sprites![0]!.templateId).toBe("sprite_tree_oak");
+    expect(result.sprites![0]!.position).toEqual({ x: 10, y: 10 });
+
+    // Second tree at (11,10): anchor cell is already blocked by first tree's collision footprint.
+    // placeObject early-returns because collision[y*w+x] is "1".
+    // Objects layer should still be empty at that position.
+    const objects = result.layers[1]!;
+    expect(objects.data[10 * 80 + 11]!.char).toBe("");
+  });
+
+  test("second sprite fails collision check and uses single-cell fallback", () => {
+    // Use rock_large which has only a single collision tile at (0,0)
+    // Place a tree_oak at (10,10) — blocks (10,10) and (11,10)
+    // Then place rock_large at (11,10) — anchor blocked, so it early-returns
+    // Then place rock_large at (12,10) — anchor clear, sprite resolves, placed as sprite
+    const spec = makeSpec({
+      objects: [
+        { type: "tree_oak", position: { x: 10, y: 10 } },
+        { type: "rock_large", position: { x: 12, y: 10 } },
+      ],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    expect(result.sprites).toHaveLength(2);
+    expect(result.sprites![0]!.templateId).toBe("sprite_tree_oak");
+    expect(result.sprites![1]!.templateId).toBe("sprite_rock");
+  });
+
+  test("places building as sprite when lookup resolves", () => {
+    const spec = makeSpec({
+      buildings: [
+        { name: "Sprite House", type: "house", width: 6, height: 4, position: { x: 5, y: 5 } },
+      ],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    expect(result.sprites).toHaveLength(1);
+    expect(result.sprites![0]!.templateId).toBe("sprite_house");
+    expect(result.sprites![0]!.position).toEqual({ x: 5, y: 5 });
+
+    // Object layer should NOT have box-drawing characters
+    const objects = result.layers[1]!;
+    expect(objects.data[5 * 80 + 5]!.char).toBe("");
+  });
+
+  test("building sprite collision tiles are blocked", () => {
+    const spec = makeSpec({
+      buildings: [
+        { name: "Sprite House", type: "house", width: 6, height: 4, position: { x: 5, y: 5 } },
+      ],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+    const collision = result.layers[2]!;
+
+    // house sprite blocks a 3x2 area at (5,5)
+    expect(collision.data[5 * 80 + 5]!.char).toBe("1");
+    expect(collision.data[5 * 80 + 6]!.char).toBe("1");
+    expect(collision.data[5 * 80 + 7]!.char).toBe("1");
+    expect(collision.data[6 * 80 + 5]!.char).toBe("1");
+    expect(collision.data[6 * 80 + 6]!.char).toBe("1");
+    expect(collision.data[6 * 80 + 7]!.char).toBe("1");
+  });
+
+  test("building falls back to box-drawing when lookup returns undefined", () => {
+    const lookupNoBuildings: SpriteLookup = {
+      resolve: () => undefined,
+      resolveBuilding: () => undefined,
+      resolveNpc: () => undefined,
+    };
+    const spec = makeSpec({
+      buildings: [
+        { name: "Fallback House", type: "house", width: 6, height: 4, position: { x: 10, y: 10 } },
+      ],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, lookupNoBuildings);
+
+    // No sprites, box-drawing should be present
+    expect(result.sprites).toHaveLength(0);
+    const objects = result.layers[1]!;
+    expect(objects.data[10 * 80 + 10]!.char).toBe("╔");
+  });
+
+  test("places NPC as sprite when lookup resolves", () => {
+    const spec = makeSpec({
+      npcs: [{ role: "guard", position: { x: 15, y: 15 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    expect(result.sprites).toHaveLength(1);
+    expect(result.sprites![0]!.templateId).toBe("sprite_guard");
+    expect(result.sprites![0]!.position).toEqual({ x: 15, y: 15 });
+  });
+
+  test("NPC sprite collision tiles are blocked", () => {
+    const spec = makeSpec({
+      npcs: [{ role: "guard", position: { x: 15, y: 15 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+    const collision = result.layers[2]!;
+
+    expect(collision.data[15 * 80 + 15]!.char).toBe("1");
+  });
+
+  test("NPC tint is passed through to sprite instance", () => {
+    const spec = makeSpec({
+      npcs: [{ role: "guard", position: { x: 15, y: 15 }, tint: "#ff0000" }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    expect(result.sprites).toHaveLength(1);
+    expect(result.sprites![0]!.tint).toBe("#ff0000");
+  });
+
+  test("NPC without tint does not include tint field", () => {
+    const spec = makeSpec({
+      npcs: [{ role: "guard", position: { x: 15, y: 15 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    expect(result.sprites).toHaveLength(1);
+    expect(result.sprites![0]!.tint).toBeUndefined();
+  });
+
+  test("NPC is skipped when lookup returns undefined", () => {
+    const spec = makeSpec({
+      npcs: [{ role: "merchant", position: { x: 15, y: 15 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    // "merchant" not in lookup, NPC is silently skipped
+    expect(result.sprites).toHaveLength(0);
+  });
+
+  test("NPC is skipped when out of bounds", () => {
+    const spec = makeSpec({
+      npcs: [{ role: "guard", position: { x: -1, y: 50 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    expect(result.sprites).toHaveLength(0);
+  });
+
+  test("sprite placement rejected when collision tile is out of bounds", () => {
+    const spec = makeSpec({
+      objects: [{ type: "tree_oak", position: { x: 79, y: 10 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    // tree_oak has collision at dx:1 — position x=79 + dx=1 = 80 is out of bounds
+    // Should fall back to single-cell
+    expect(result.sprites).toHaveLength(0);
+    const objects = result.layers[1]!;
+    expect(objects.data[10 * 80 + 79]!.char).toBe("♣");
+  });
+
+  test("uses normalized object type for sprite lookup", () => {
+    const spec = makeSpec({
+      objects: [{ type: "tree", position: { x: 10, y: 10 } }],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    // "tree" normalizes to "tree_oak", which the lookup knows
+    expect(result.sprites).toHaveLength(1);
+    expect(result.sprites![0]!.templateId).toBe("sprite_tree_oak");
+  });
+
+  test("mixes sprites and single-cell objects in same build", () => {
+    const spec = makeSpec({
+      objects: [
+        { type: "tree_oak", position: { x: 10, y: 10 } },
+        { type: "sign", position: { x: 20, y: 20 } },
+        { type: "rock_large", position: { x: 30, y: 30 } },
+      ],
+    });
+    const result = builder.build(spec, "zone_0_0", testPalette, 80, 40, testLookup);
+
+    // tree_oak and rock_large as sprites, sign as single-cell
+    expect(result.sprites).toHaveLength(2);
+    expect(result.sprites!.map((s) => s.templateId).sort()).toEqual(["sprite_rock", "sprite_tree_oak"]);
+
+    const objects = result.layers[1]!;
+    expect(objects.data[20 * 80 + 20]!.char).toBe("┬");
+  });
+
+  test("without spriteLookup, build still works (backward compat)", () => {
+    const spec = makeSpec({
+      objects: [{ type: "tree_oak", position: { x: 10, y: 10 } }],
+      buildings: [
+        { name: "House", type: "house", width: 6, height: 4, position: { x: 20, y: 20 } },
+      ],
+    });
+    // No spriteLookup argument
+    const result = builder.build(spec, "zone_0_0", testPalette);
+
+    // Should use single-cell placement
+    expect(result.sprites).toHaveLength(0);
+    const objects = result.layers[1]!;
+    expect(objects.data[10 * 80 + 10]!.char).toBe("♣");
+    expect(objects.data[20 * 80 + 20]!.char).toBe("╔");
   });
 });

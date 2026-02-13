@@ -30,7 +30,9 @@ export {
 export {
   ZONE_GENERATION_SYSTEM_PROMPT,
   buildZoneGenerationPrompt,
+  formatAdjacentHints,
 } from "./prompts/zone-generation.ts";
+export type { AdjacentZonePromptHint } from "./prompts/zone-generation.ts";
 export {
   DIALOGUE_SYSTEM_PROMPT,
   CONSEQUENCE_SYSTEM_PROMPT,

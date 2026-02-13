@@ -117,7 +117,17 @@ export { WorldState } from "./world/WorldState.ts";
 export { zoneId, parseZoneCoords, getTileAt, getLayer, isPassable, adjacentZoneIds } from "./world/Zone.ts";
 export { createBiomeConfig, blendPalettes } from "./world/BiomeSystem.ts";
 export { ZoneBuilder } from "./world/ZoneBuilder.ts";
-export type { ZoneBuildSpec, ZoneBuildResult, BuildingVisual, ObjectVisual } from "./world/ZoneBuilder.ts";
+export type { ZoneBuildSpec, ZoneBuildResult, BuildingVisual, ObjectVisual, SpriteLookup, SpriteLookupResult } from "./world/ZoneBuilder.ts";
+export {
+  classifyTerrain,
+  extractEdgeSignature,
+  extractEdgeSignatureFromBuildResult,
+  blendEdge,
+  applyEdgeCoherence,
+  lerpColor,
+  oppositeDirection,
+} from "./world/EdgeCoherence.ts";
+export type { TerrainType } from "./world/EdgeCoherence.ts";
 export { ZoneManager, preloadOrder } from "./world/ZoneManager.ts";
 export type {
   ZoneStore,

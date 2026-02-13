@@ -180,16 +180,16 @@ export class GameShell {
 
     switch (key.name) {
       // Arrow keys
-      case "ArrowUp":
+      case "up":
         dy = -1;
         break;
-      case "ArrowDown":
+      case "down":
         dy = 1;
         break;
-      case "ArrowLeft":
+      case "left":
         dx = -1;
         break;
-      case "ArrowRight":
+      case "right":
         dx = 1;
         break;
       // WASD

@@ -25,6 +25,7 @@ export class InputRouter {
   private eventBus: EventBus;
   private movementCtx: MovementContext | null = null;
   private dialogueHandler: ((key: KeyEvent) => void) | null = null;
+  private mapHandler: ((key: KeyEvent) => void) | null = null;
 
   constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -49,6 +50,10 @@ export class InputRouter {
     this.dialogueHandler = handler;
   }
 
+  setMapHandler(handler: ((key: KeyEvent) => void) | null): void {
+    this.mapHandler = handler;
+  }
+
   handleKey(key: KeyEvent): void {
     switch (this._mode) {
       case "exploration":
@@ -56,6 +61,9 @@ export class InputRouter {
         break;
       case "dialogue":
         this.handleDialogue(key);
+        break;
+      case "map":
+        this.handleMap(key);
         break;
       case "menu":
         this.handleMenu(key);
@@ -70,21 +78,24 @@ export class InputRouter {
     let facing: Direction | null = null;
 
     switch (key.name) {
-      case "ArrowUp": case "w": case "k":
+      case "up": case "w": case "k":
         dy = -1; facing = "up"; break;
-      case "ArrowDown": case "s": case "j":
+      case "down": case "s": case "j":
         dy = 1; facing = "down"; break;
-      case "ArrowLeft": case "a": case "h":
+      case "left": case "a": case "h":
         dx = -1; facing = "left"; break;
-      case "ArrowRight": case "d": case "l":
+      case "right": case "d": case "l":
         dx = 1; facing = "right"; break;
 
       // Interaction
-      case "e": case "Enter":
+      case "e": case "return":
         this.interactWithNearby();
         return;
 
       // Overlays
+      case "m":
+        this.setMode("map");
+        return;
       case "escape":
         this.setMode("menu");
         return;
@@ -98,6 +109,11 @@ export class InputRouter {
   private handleDialogue(key: KeyEvent): void {
     // Delegate to the registered dialogue handler (DialoguePanel manages Escape logic)
     this.dialogueHandler?.(key);
+  }
+
+  private handleMap(key: KeyEvent): void {
+    // Delegate to the registered map handler (LocationBrowser manages navigation)
+    this.mapHandler?.(key);
   }
 
   private handleMenu(key: KeyEvent): void {

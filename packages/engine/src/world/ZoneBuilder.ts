@@ -1,4 +1,27 @@
-import type { BiomePalette, SpriteInstance, TileCell, TileLayer } from "../types.ts";
+import type { BiomePalette, Direction, SpriteInstance, TileCell, TileLayer } from "../types.ts";
+import type { EdgeSignature } from "./ZoneManager.ts";
+import { applyEdgeCoherence } from "./EdgeCoherence.ts";
+import { DEFAULT_ZONE_CONFIG } from "./zone-config.ts";
+
+// ── Sprite Lookup ────────────────────────────────────────────
+// Defined in engine so ZoneBuilder has no dependency on @daydream/renderer.
+// The renderer (or tests) provides a concrete implementation.
+
+export interface SpriteLookupResult {
+  templateId: string;
+  collisionTiles: { dx: number; dy: number }[];
+}
+
+/**
+ * Resolves object/building/NPC type strings to sprite template IDs and
+ * collision footprints. Injected into `build()` as an optional parameter
+ * so ZoneBuilder can place multi-cell sprites without depending on renderer.
+ */
+export interface SpriteLookup {
+  resolve(objectType: string): SpriteLookupResult | undefined;
+  resolveBuilding(buildingType: string): SpriteLookupResult | undefined;
+  resolveNpc(role: string): SpriteLookupResult | undefined;
+}
 
 // ── Input types (matches AI ZoneSpec shape without importing from @daydream/ai) ──
 
@@ -17,6 +40,11 @@ export interface ZoneBuildSpec {
   objects: Array<{
     type: string;
     position: { x: number; y: number };
+  }>;
+  npcs?: Array<{
+    role: string;
+    position: { x: number; y: number };
+    tint?: string;
   }>;
 }
 
@@ -67,10 +95,14 @@ export class ZoneBuilder {
     palette: BiomePalette,
     width = DEFAULT_WIDTH,
     height = DEFAULT_HEIGHT,
+    spriteLookup?: SpriteLookup,
+    neighborEdges?: Map<Direction, EdgeSignature>,
+    edgeBlendDepth?: number,
   ): ZoneBuildResult {
     const ground: TileCell[] = new Array(width * height);
     const objects: TileCell[] = new Array(width * height);
     const collision: TileCell[] = new Array(width * height);
+    const sprites: SpriteInstance[] = [];
 
     // 1. Fill ground
     for (let i = 0; i < width * height; i++) {
@@ -86,15 +118,22 @@ export class ZoneBuilder {
 
     // 3. Buildings
     for (const building of spec.buildings) {
-      this.placeBuilding(building, objects, collision, ground, width, height);
+      this.placeBuilding(building, objects, collision, ground, width, height, spriteLookup, sprites);
     }
 
     // 4. Objects (trees, rocks, signs, etc.)
     for (const obj of spec.objects) {
-      this.placeObject(obj, objects, collision, width, height, palette);
+      this.placeObject(obj, objects, collision, width, height, palette, spriteLookup, sprites);
     }
 
-    // 5. Find a clear spawn point near center
+    // 5. NPCs — generate SpriteInstance entries when a lookup is provided
+    if (spec.npcs) {
+      for (const npc of spec.npcs) {
+        this.placeNpc(npc, collision, width, height, spriteLookup, sprites);
+      }
+    }
+
+    // 6. Find a clear spawn point near center
     const spawnPoint = this.findSpawnPoint(collision, width, height);
     // Ensure spawn is passable
     const spawnIdx = spawnPoint.y * width + spawnPoint.x;
@@ -107,7 +146,14 @@ export class ZoneBuilder {
       { name: "collision", data: collision, width, height },
     ];
 
-    return { id: zoneId, width, height, layers, spawnPoint };
+    const result: ZoneBuildResult = { id: zoneId, width, height, layers, spawnPoint, sprites };
+
+    // 7. Edge blending — post-process to match neighbor boundaries
+    if (neighborEdges && neighborEdges.size > 0) {
+      applyEdgeCoherence(result, neighborEdges, edgeBlendDepth ?? DEFAULT_ZONE_CONFIG.edgeBlendDepth);
+    }
+
+    return result;
   }
 
   // ── Ground ──────────────────────────────────────────────
@@ -253,7 +299,23 @@ export class ZoneBuilder {
     ground: TileCell[],
     w: number,
     h: number,
+    spriteLookup?: SpriteLookup,
+    sprites?: SpriteInstance[],
   ): void {
+    // Try sprite placement first
+    if (spriteLookup && sprites) {
+      const sprite = spriteLookup.resolveBuilding(building.type);
+      if (sprite) {
+        const { x, y } = building.position;
+        if (this.canPlaceSprite(sprite.collisionTiles, x, y, collision, w, h)) {
+          sprites.push({ templateId: sprite.templateId, position: { x, y } });
+          this.markSpriteCollision(sprite.collisionTiles, x, y, collision, w);
+          return;
+        }
+      }
+    }
+
+    // Fallback: box-drawing character placement
     const tpl = this.buildingVisuals[building.type] ?? this.buildingVisuals["house"];
     if (!tpl) return;
 
@@ -308,13 +370,28 @@ export class ZoneBuilder {
     w: number,
     h: number,
     palette: BiomePalette,
+    spriteLookup?: SpriteLookup,
+    sprites?: SpriteInstance[],
   ): void {
     const { x, y } = obj.position;
     if (x < 0 || x >= w || y < 0 || y >= h) return;
     if (collision[y * w + x]!.char === "1") return; // Already blocked
 
-    const idx = y * w + x;
     const type = obj.type.toLowerCase();
+
+    // Try sprite placement first
+    if (spriteLookup && sprites) {
+      const sprite = spriteLookup.resolve(type)
+        ?? spriteLookup.resolve(normalizeObjectType(type));
+      if (sprite && this.canPlaceSprite(sprite.collisionTiles, x, y, collision, w, h)) {
+        sprites.push({ templateId: sprite.templateId, position: { x, y } });
+        this.markSpriteCollision(sprite.collisionTiles, x, y, collision, w);
+        return;
+      }
+    }
+
+    // Fallback: single-cell placement
+    const idx = y * w + x;
 
     // Try exact match in object visuals
     const visual = this.objectVisuals[type]
@@ -338,6 +415,72 @@ export class ZoneBuilder {
 
     // Fallback: generic object marker
     objects[idx] = { char: "◦", fg: "#888888" };
+  }
+
+  // ── NPCs ──────────────────────────────────────────────
+
+  private placeNpc(
+    npc: NonNullable<ZoneBuildSpec["npcs"]>[0],
+    collision: TileCell[],
+    w: number,
+    h: number,
+    spriteLookup?: SpriteLookup,
+    sprites?: SpriteInstance[],
+  ): void {
+    const { x, y } = npc.position;
+    if (x < 0 || x >= w || y < 0 || y >= h) return;
+
+    if (spriteLookup && sprites) {
+      const sprite = spriteLookup.resolveNpc(npc.role);
+      if (sprite && this.canPlaceSprite(sprite.collisionTiles, x, y, collision, w, h)) {
+        sprites.push({
+          templateId: sprite.templateId,
+          position: { x, y },
+          ...(npc.tint ? { tint: npc.tint } : {}),
+        });
+        this.markSpriteCollision(sprite.collisionTiles, x, y, collision, w);
+      }
+    }
+  }
+
+  // ── Sprite Helpers ────────────────────────────────────
+
+  /**
+   * Check whether all collision tiles for a sprite are within bounds and
+   * not already blocked.
+   */
+  private canPlaceSprite(
+    collisionTiles: { dx: number; dy: number }[],
+    anchorX: number,
+    anchorY: number,
+    collision: TileCell[],
+    w: number,
+    h: number,
+  ): boolean {
+    for (const { dx, dy } of collisionTiles) {
+      const tx = anchorX + dx;
+      const ty = anchorY + dy;
+      if (tx < 0 || tx >= w || ty < 0 || ty >= h) return false;
+      if (collision[ty * w + tx]!.char === "1") return false;
+    }
+    return true;
+  }
+
+  /**
+   * Mark collision tiles as blocked for a placed sprite.
+   */
+  private markSpriteCollision(
+    collisionTiles: { dx: number; dy: number }[],
+    anchorX: number,
+    anchorY: number,
+    collision: TileCell[],
+    w: number,
+  ): void {
+    for (const { dx, dy } of collisionTiles) {
+      const tx = anchorX + dx;
+      const ty = anchorY + dy;
+      collision[ty * w + tx] = BLOCKED;
+    }
   }
 
   // ── Spawn Point ─────────────────────────────────────────

@@ -39,6 +39,7 @@ import type { ZoneData, TileCell, TileLayer } from "@daydream/renderer";
 import type { BuildingVisual, ObjectVisual, ZoneBuildResult } from "@daydream/engine";
 import { AIClient, ContextManager } from "@daydream/ai";
 import { InputRouter } from "./InputRouter.ts";
+import { LocationBrowser } from "./LocationBrowser.ts";
 import { DialogueManager } from "./DialogueManager.ts";
 import { TitleScreen } from "./TitleScreen.ts";
 import type { TitleScreenResult } from "./TitleScreen.ts";
@@ -507,7 +508,15 @@ function startGameplay(opts: GameplayOptions): void {
     }
   });
 
-  // Mode changes → swap bottom bar components
+  // Location browser overlay
+  const locationBrowser = new LocationBrowser(renderer, worldState, zoneManager ?? null);
+
+  // Wire map mode handler
+  inputRouter.setMapHandler((key) => {
+    locationBrowser.handleKey(key);
+  });
+
+  // Mode changes → swap bottom bar components and show/hide overlays
   eventBus.on("mode:changed", ({ from, to }) => {
     if (to === "dialogue") {
       renderer.root.remove("narrative-bar");
@@ -516,6 +525,24 @@ function startGameplay(opts: GameplayOptions): void {
       renderer.root.remove("dialogue-panel");
       renderer.root.add(narrativeBar.container);
     }
+
+    // Opening map → show location browser, start async selection
+    if (to === "map") {
+      locationBrowser.show().then((selectedZoneId) => {
+        if (selectedZoneId && selectedZoneId !== worldState.activeZoneId) {
+          // Trigger fast-travel to selected zone
+          handleFastTravel(selectedZoneId as ZoneId);
+        }
+        // Return to exploration mode (browser already hidden itself)
+        inputRouter.setMode("exploration");
+      });
+    }
+
+    // Closing map from another trigger (safety net)
+    if (from === "map" && locationBrowser.isVisible) {
+      locationBrowser.hide();
+    }
+
     renderer.requestRender();
   });
 
@@ -645,6 +672,76 @@ function startGameplay(opts: GameplayOptions): void {
     renderFrame();
 
     gameLogger.info("Zone transition complete: now in {id} at ({x}, {y})", {
+      id: zone.id,
+      x: px,
+      y: py,
+    });
+  }
+
+  // ── Fast-travel handling ───────────────────────────────────
+
+  async function handleFastTravel(targetZoneId: ZoneId): Promise<void> {
+    if (!zoneManager || !transitionManager || transitioning) return;
+
+    transitioning = true;
+    gameLogger.info("Fast-travel started: target={id}", { id: targetZoneId });
+
+    // Ensure the target zone is loaded (may need generation)
+    if (!zoneManager.isReady(targetZoneId)) {
+      gameLogger.info("Loading zone {id} for fast-travel", { id: targetZoneId });
+      await zoneManager.ensureZone(targetZoneId);
+    }
+
+    // Determine spawn position (center of target zone)
+    const targetZone = zoneManager.getZone(targetZoneId);
+    if (!targetZone) {
+      gameLogger.error("Fast-travel target zone {id} not found after loading", { id: targetZoneId });
+      transitioning = false;
+      return;
+    }
+
+    const targetZoneData = zoneToZoneData(targetZone);
+    const spawnX = Math.floor(targetZoneData.width / 2);
+    const spawnY = Math.floor(targetZoneData.height / 2);
+
+    // Perform fade transition
+    const zoneConfig = zoneManager.getConfig();
+    await transitionManager.fadeTransition(
+      () => {
+        // Midpoint: swap zone data
+        zoneManager.activateZone(targetZoneId).catch((err) => {
+          gameLogger.error("Zone activation during fast-travel failed: {err}", {
+            err: err instanceof Error ? err.message : String(err),
+          });
+        });
+
+        zone = targetZoneData;
+        worldState.activeZoneId = targetZoneId;
+
+        px = spawnX;
+        py = spawnY;
+
+        worldState.player.position.zone = targetZoneId;
+        worldState.player.position.x = px;
+        worldState.player.position.y = py;
+
+        // Update camera and re-render
+        viewport.updateCamera(px, py, zone.width, zone.height);
+        tileRenderer.renderZone(zone, viewport, px, py);
+        charRenderer.renderCharacters(characters, viewport);
+        charRenderer.renderNameplates(characters, { x: px, y: py }, viewport);
+      },
+      {
+        fadeOutMs: zoneConfig.transitionFadeOutMs,
+        fadeInMs: zoneConfig.transitionFadeInMs,
+      },
+    );
+
+    transitioning = false;
+    updateMovementContext();
+    renderFrame();
+
+    gameLogger.info("Fast-travel complete: now in {id} at ({x}, {y})", {
       id: zone.id,
       x: px,
       y: py,
