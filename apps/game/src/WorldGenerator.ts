@@ -159,10 +159,18 @@ export class WorldGenerator {
     onProgress?.("Bringing characters to life...");
     const characters = this.extractCharacters(zoneSpec);
 
+    // Save sprite cache after initial generation (new sprites may have been placed)
+    this.spriteRegistry.saveCache().catch((err) => {
+      logger.warn("Failed to save sprite cache: {err}", {
+        err: err instanceof Error ? err.message : String(err),
+      });
+    });
+
     const duration = Math.round(performance.now() - start);
-    logger.info("World generation complete in {duration}ms — {charCount} characters", {
+    logger.info("World generation complete in {duration}ms — {charCount} characters, {spriteCount} sprites", {
       duration,
       charCount: characters.length,
+      spriteCount: zone.sprites?.length ?? 0,
       biome: seedSpec.biomeMap.centerBiome,
     });
 
