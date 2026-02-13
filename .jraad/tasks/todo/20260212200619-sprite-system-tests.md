@@ -29,9 +29,18 @@ Comprehensive test suite for the sprite system covering PixelBuffer, half-block 
 
 ## Implementation Steps
 
-_To be filled in when the task is started._
+- [ ] Read existing source and test files to understand patterns
+- [ ] Create half-block encoder tests (`encode.test.ts`)
+- [ ] Create SpriteRegistry tests (`SpriteRegistry.test.ts`)
+- [ ] Create ground texture tests
+- [ ] Create TileRenderer integration test
+- [ ] Check for gaps in existing PixelBuffer/ZoneBuilder tests
+- [ ] Run full test suite to verify no regressions
 
 ## Progress Log
 
 ### 2026-02-12 20:06:19 EST
 Initial creation. Extracted from Advanced Sprite System design doc (Section 12 test plan). Depends on TileRenderer rewrite completing.
+
+### 2026-02-12 21:18:08 EST
+Starting work on branch `main`. Agent: cool-finch. Will read existing source files and tests to understand patterns, then create test suites for encode.ts, SpriteRegistry.ts, ground-textures.ts, and TileRenderer integration.

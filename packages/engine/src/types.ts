@@ -561,6 +561,7 @@ export const GameModeSchema = z.enum([
   "inventory",
   "map",
   "menu",
+  "portal",
 ]);
 export type GameMode = z.infer<typeof GameModeSchema>;
 

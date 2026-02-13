@@ -4,6 +4,7 @@
     { "path": "packages/engine" },
     { "path": "packages/ai" },
     { "path": "packages/renderer" },
+    { "path": "packages/audio" },
     { "path": "apps/game" }
   ]
 }

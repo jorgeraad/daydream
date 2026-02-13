@@ -66,3 +66,4 @@ export { DEFAULT_SPRITE_CONFIG, PixelBuffer } from "./sprites/index.ts";
 export { SpriteRegistry } from "./sprites/index.ts";
 export { encodeHalfBlocks } from "./sprites/index.ts";
 export { ALL_SPRITES, NPC_PLAYER } from "./sprites/index.ts";
+export { OBJECT_TYPE_TO_SPRITE, NPC_ROLE_TO_SPRITE } from "./sprites/index.ts";

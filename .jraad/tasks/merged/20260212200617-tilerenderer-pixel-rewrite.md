@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 20:06:17 EST |
-| **Last Modified**  | 2026-02-12 21:14:57 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 21:16:35 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | fresh-finch |
 | **Blocked-By**     | 20260212200613, 20260212200614, 20260212200615, 20260212200611 |
@@ -73,3 +73,6 @@ Implementation complete. Verified all acceptance criteria satisfied:
 - TypeScript compiles cleanly for all touched files (pre-existing errors in unrelated test files only)
 - Callers updated: GameShell.ts and index.ts both pass SpriteRegistry to TileRenderer constructor
 - Renderer index.ts updated to export SpriteRegistry, encodeHalfBlocks, ColorTransform, ALL_SPRITES, NPC_PLAYER
+
+### 2026-02-12 21:16:35 EST
+Branch merged to main.

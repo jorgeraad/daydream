@@ -33,9 +33,20 @@ Wire the sprite system into the game layer. GameShell creates a SpriteRegistry, 
 
 ## Implementation Steps
 
-_To be filled in when the task is started._
+- [ ] Read existing code: GameShell.ts, WorldGenerator.ts, index.ts, ZoneBuilder.ts, SpriteRegistry.ts
+- [ ] Create SpriteLookup adapter from SpriteRegistry + built-in library mappings
+- [ ] Wire SpriteRegistry into WorldGenerator
+- [ ] Pass SpriteLookup to ZoneBuilder during zone generation
+- [ ] Map ZoneBuildResult.sprites into ZoneData.sprites
+- [ ] Set biomeType on ZoneData from AI response / ZoneSpec
+- [ ] Call loadCache() at startup, saveCache() after generation
+- [ ] Run typecheck
+- [ ] Run tests
 
 ## Progress Log
 
 ### 2026-02-12 20:06:18 EST
 Initial creation. Extracted from Advanced Sprite System design doc. Final integration task — wires everything together in the game layer.
+
+### 2026-02-12 21:17:43 EST
+Starting work on branch `main`. Agent: swift-cedar. Will read existing code to understand current state, then wire sprite pipeline through WorldGenerator.

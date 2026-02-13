@@ -26,6 +26,7 @@ export class InputRouter {
   private movementCtx: MovementContext | null = null;
   private dialogueHandler: ((key: KeyEvent) => void) | null = null;
   private mapHandler: ((key: KeyEvent) => void) | null = null;
+  private portalHandler: ((key: KeyEvent) => void) | null = null;
 
   constructor(eventBus: EventBus) {
     this.eventBus = eventBus;
@@ -54,6 +55,10 @@ export class InputRouter {
     this.mapHandler = handler;
   }
 
+  setPortalHandler(handler: ((key: KeyEvent) => void) | null): void {
+    this.portalHandler = handler;
+  }
+
   handleKey(key: KeyEvent): void {
     switch (this._mode) {
       case "exploration":
@@ -67,6 +72,9 @@ export class InputRouter {
         break;
       case "menu":
         this.handleMenu(key);
+        break;
+      case "portal":
+        this.handlePortal(key);
         break;
     }
   }
@@ -96,6 +104,9 @@ export class InputRouter {
       case "m":
         this.setMode("map");
         return;
+      case "p":
+        this.setMode("portal");
+        return;
       case "escape":
         this.setMode("menu");
         return;
@@ -114,6 +125,11 @@ export class InputRouter {
   private handleMap(key: KeyEvent): void {
     // Delegate to the registered map handler (LocationBrowser manages navigation)
     this.mapHandler?.(key);
+  }
+
+  private handlePortal(key: KeyEvent): void {
+    // Delegate to the registered portal handler (PortalPrompt manages input + Escape)
+    this.portalHandler?.(key);
   }
 
   private handleMenu(key: KeyEvent): void {

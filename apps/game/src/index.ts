@@ -27,6 +27,7 @@ import {
   ZoneManager,
   adjacentZoneIds,
   parseZoneCoords,
+  zoneId as makeZoneId,
 } from "@daydream/engine";
 import type {
   Character,
@@ -36,7 +37,7 @@ import type {
   WorldSeed,
   Point,
 } from "@daydream/engine";
-import type { ZoneStore, ZoneGeneratorFn } from "@daydream/engine";
+import type { ZoneStore, ZoneGeneratorFn, ZoneGenerationContext } from "@daydream/engine";
 import type { ZoneData, TileCell, TileLayer } from "@daydream/renderer";
 import type { BuildingVisual, ObjectVisual, ZoneBuildResult } from "@daydream/engine";
 import { AIClient, ContextManager } from "@daydream/ai";
@@ -157,6 +158,8 @@ function zoneToZoneData(zone: Zone): ZoneData {
     width: zone.tiles[0]?.width ?? 80,
     height: zone.tiles[0]?.height ?? 40,
     layers: zone.tiles as TileLayer[],
+    sprites: zone.sprites,
+    biomeType: zone.biome.type,
   };
 }
 
@@ -404,6 +407,7 @@ interface GameplayOptions {
   worldState?: WorldState;
   generator?: WorldGenerator;
   saveManager?: SaveManager;
+  spriteRegistry?: SpriteRegistry;
 }
 
 function startGameplay(opts: GameplayOptions): void {
@@ -443,8 +447,12 @@ function startGameplay(opts: GameplayOptions): void {
   fb.focusable = true;
   fb.focus();
 
-  const spriteRegistry = new SpriteRegistry();
-  spriteRegistry.registerBuiltins(ALL_SPRITES);
+  // Use shared registry if provided, otherwise create a fresh one
+  const spriteRegistry = opts.spriteRegistry ?? (() => {
+    const reg = new SpriteRegistry();
+    reg.registerBuiltins(ALL_SPRITES);
+    return reg;
+  })();
   const tileRenderer = new TileRenderer(fb.frameBuffer, spriteRegistry);
   const charRenderer = new CharacterRenderer(fb.frameBuffer);
 
@@ -801,7 +809,7 @@ function startGameplay(opts: GameplayOptions): void {
       y += dy;
       segmentPassed++;
 
-      const candidateId = `zone_${x}_${y}` as ZoneId;
+      const candidateId = makeZoneId(x, y);
       if (!worldState.zones.has(candidateId)) {
         return { x, y };
       }
@@ -845,7 +853,7 @@ function startGameplay(opts: GameplayOptions): void {
     try {
       // Find a free coordinate for the new zone
       const coords = findNextFreeCoordinate();
-      const newZoneId = `zone_${coords.x}_${coords.y}` as ZoneId;
+      const newZoneId = makeZoneId(coords.x, coords.y);
 
       gameLogger.info("Portal target: {id} at ({x}, {y})", {
         id: newZoneId,
@@ -855,7 +863,7 @@ function startGameplay(opts: GameplayOptions): void {
 
       // Build generation context from ZoneManager's world seed
       const zoneConfig = zoneManager.getConfig();
-      const context: import("@daydream/engine").ZoneGenerationContext = {
+      const context: ZoneGenerationContext = {
         worldSeed: worldState.worldSeed,
         biome: worldState.worldSeed.biomeMap.center,
         adjacentHints: new Map(),
@@ -1071,6 +1079,17 @@ async function main() {
   }
   titleScreen.destroy();
 
+  // Initialize shared sprite registry — used by WorldGenerator and TileRenderer
+  const spriteRegistry = new SpriteRegistry();
+  spriteRegistry.registerBuiltins(ALL_SPRITES);
+  await spriteRegistry.loadCache().then((count) => {
+    if (count > 0) logger.info("Loaded {count} cached sprite templates", { count });
+  }).catch((err) => {
+    logger.warn("Failed to load sprite cache: {err}", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+  });
+
   // Generate world — API key is guaranteed at this point
   logger.info("Generating world from prompt: {prompt}", { prompt: playerPrompt });
   const loadingScreen = new LoadingScreen(renderer);
@@ -1090,13 +1109,22 @@ async function main() {
       aiClient,
       toBuildingVisuals(),
       toObjectVisuals(),
+      spriteRegistry,
     );
 
     const world = await generator.generate(playerPrompt, (status) => {
       loadingScreen.setStatus(status);
     });
 
-    zone = world.zone;
+    // Map ZoneBuildResult to ZoneData with sprites and biomeType
+    zone = {
+      id: world.zone.id,
+      width: world.zone.width,
+      height: world.zone.height,
+      layers: world.zone.layers,
+      sprites: world.zone.sprites,
+      biomeType: world.seed.biomeMap.center.type,
+    };
     worldSeed = world.seed;
     spawnX = world.zone.spawnPoint.x;
     spawnY = world.zone.spawnPoint.y;
@@ -1195,6 +1223,7 @@ async function main() {
       coords: parseZoneCoords(zone.id as ZoneId) ?? { x: 0, y: 0 },
       biome: worldSeed.biomeMap.center,
       tiles: zone.layers as any,
+      sprites: zone.sprites,
       characters: characters.map((c) => c.id),
       buildings: [],
       objects: [],
@@ -1227,6 +1256,7 @@ async function main() {
     worldState,
     generator,
     saveManager,
+    spriteRegistry,
   });
 }
 

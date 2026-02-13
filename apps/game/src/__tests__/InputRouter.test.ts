@@ -207,6 +207,55 @@ describe("InputRouter", () => {
     });
   });
 
+  describe("portal mode", () => {
+    test("p key in exploration switches to portal mode", () => {
+      const router = new InputRouter(new EventBus());
+      router.handleKey({ name: "p" });
+      expect(router.mode).toBe("portal");
+    });
+
+    test("setPortalHandler registers handler that receives keys", () => {
+      const eventBus = new EventBus();
+      const router = new InputRouter(eventBus);
+
+      const received: string[] = [];
+      router.setPortalHandler((key) => received.push(key.name));
+
+      router.setMode("portal");
+      router.handleKey({ name: "a" });
+      router.handleKey({ name: "return" });
+      router.handleKey({ name: "escape" });
+
+      expect(received).toEqual(["a", "return", "escape"]);
+    });
+
+    test("setPortalHandler(null) clears handler", () => {
+      const eventBus = new EventBus();
+      const router = new InputRouter(eventBus);
+
+      const received: string[] = [];
+      router.setPortalHandler((key) => received.push(key.name));
+      router.setPortalHandler(null);
+
+      router.setMode("portal");
+      router.handleKey({ name: "a" });
+
+      expect(received).toEqual([]);
+    });
+
+    test("portal handler not invoked in exploration mode", () => {
+      const eventBus = new EventBus();
+      const router = new InputRouter(eventBus);
+
+      const received: string[] = [];
+      router.setPortalHandler((key) => received.push(key.name));
+
+      // 'x' is not a recognized key in exploration, should not go to portal handler
+      router.handleKey({ name: "x" });
+      expect(received).toEqual([]);
+    });
+  });
+
   describe("menu mode", () => {
     test("escape returns to exploration mode", () => {
       const router = new InputRouter(new EventBus());
