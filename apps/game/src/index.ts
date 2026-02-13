@@ -34,6 +34,15 @@ import { configureLogging } from "./logging/index.ts";
 import { getLogger } from "@logtape/logtape";
 import type { LogLevel } from "@logtape/logtape";
 
+// ── Polyfills ────────────────────────────────────────────────
+
+// Bun.stripANSI was added after 1.2.x; OpenTUI's KeyHandler.processPaste()
+// calls it and silently swallows paste events when it's missing.
+if (typeof (Bun as any).stripANSI !== "function") {
+  const ansiRe = /[\x1B\x9B][\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nq-uy=><~]/g;
+  (Bun as any).stripANSI = (str: string) => str.replace(ansiRe, "");
+}
+
 // ── Helpers ──────────────────────────────────────────────────
 
 function randomPick<T>(arr: T[]): T {

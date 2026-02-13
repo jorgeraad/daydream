@@ -2,6 +2,12 @@ import { describe, test, expect, afterEach } from "bun:test";
 import { createTestRenderer } from "@opentui/core/testing";
 import { MaskedInput } from "../ui/MaskedInput.ts";
 
+// Polyfill Bun.stripANSI for test environment (used by OpenTUI's paste handling)
+if (typeof (Bun as any).stripANSI !== "function") {
+  const ansiRe = /[\x1B\x9B][\[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nq-uy=><~]/g;
+  (Bun as any).stripANSI = (str: string) => str.replace(ansiRe, "");
+}
+
 let cleanup: (() => void) | null = null;
 
 async function setup() {
@@ -220,6 +226,29 @@ describe("MaskedInput", () => {
     mockInput.pressBackspace();
     await tick();
     expect(mi.value).toBe("");
+  });
+
+  test("paste inserts real text and displays mask characters", async () => {
+    const { renderer, mockInput } = await setup();
+    let submitted: string | null = null;
+
+    const mi = new MaskedInput(renderer, {
+      id: "test-masked",
+      onSubmit: (val) => {
+        submitted = val;
+      },
+    });
+
+    renderer.root.add(mi.container);
+    mi.focus();
+
+    await mockInput.pasteBracketedText("sk-ant-secret-key-123");
+    await tick();
+
+    expect(mi.value).toBe("sk-ant-secret-key-123");
+
+    mockInput.pressEnter();
+    expect(submitted).toBe("sk-ant-secret-key-123");
   });
 
   test("word deletion maintains shadow buffer sync", async () => {
