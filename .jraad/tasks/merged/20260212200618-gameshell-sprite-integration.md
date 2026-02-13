@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 20:06:18 EST |
 | **Last Modified**  | 2026-02-12 21:24:19 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | swift-cedar |
 | **Blocked-By**     | 20260212200616, 20260212200617 |
@@ -59,3 +59,6 @@ Implementation complete. All 619 tests pass, TypeScript compiles cleanly (only p
 2. **index.ts** (`apps/game/src/index.ts`): Shared `SpriteRegistry` created early in `main()`, with `registerBuiltins()` + `loadCache()` called before world generation. Registry passed to `WorldGenerator` constructor and to `startGameplay()` via `GameplayOptions`. `zoneToZoneData()` now propagates `sprites` and `biomeType` from engine `Zone`. Initial zone creation maps `ZoneBuildResult` to `ZoneData` with `sprites` and `biomeType`. `startGameplay()` uses shared registry if provided, avoids creating a duplicate.
 
 3. **Renderer exports** (`packages/renderer/src/index.ts`): Added `OBJECT_TYPE_TO_SPRITE` and `NPC_ROLE_TO_SPRITE` exports so the game package can import the mapping tables.
+
+### 2026-02-12 21:26:44 EST
+Branch merged to main.

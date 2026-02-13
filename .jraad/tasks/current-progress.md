@@ -35,7 +35,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `logging` | 6 | 6 | Complete |
 | `text-input` | 4 | 4 | Complete |
 | `multi-zone-world` | 8 | 8 | Complete |
-| `advanced-sprites` | 8 | 10 | Ready |
+| `advanced-sprites` | 10 | 10 | Complete |
 
 ## In Progress
 
@@ -54,8 +54,6 @@ _None — all completed tasks have been merged._
 _Empty — no agents waiting to commit._
 
 ## Ready
-- **20260212200618 - GameShell & WorldGenerator Sprite Integration** — Wire sprite system into game flow | Touches: `apps/game/src/`
-- **20260212200619 - Sprite System Tests** — Integration tests for full sprite pipeline | Touches: `packages/renderer/src/__tests__/`
 - **20260212145507 - Chiptune Synthesis Engine** — Procedural 8-bit music synthesis | Touches: `packages/audio/src/synthesis/`
 - **20260212145508 - Sound Effects System** — Procedural SFX generation | Touches: `packages/audio/src/sfx/`
 - **20260212145529 - Tile & Character Animations** — Animated tiles and character idles | Touches: `packages/renderer/src/animation/`
