@@ -13,6 +13,9 @@ export type {
 export { TileRenderer, isCollision } from "./TileRenderer.ts";
 export { CharacterRenderer, findNearbyCharacters, findAdjacentCharacters, isCharacterAt } from "./CharacterRenderer.ts";
 export { ViewportManager } from "./ViewportManager.ts";
+export { TransitionManager } from "./TransitionManager.ts";
+export type { TransitionOverrides } from "./TransitionManager.ts";
+export { LoadingGate } from "./LoadingGate.ts";
 
 export { forestPalette, desertPalette, townPalette, biomePalettes } from "./palettes/biomes.ts";
 export { houseTpl, shopTpl, tavernTpl, wellTpl, wallTpl, buildingTemplates } from "./palettes/buildings.ts";
@@ -30,3 +33,13 @@ export { GameInput } from "./ui/GameInput.ts";
 export type { GameInputConfig } from "./ui/GameInput.ts";
 export { MaskedInput } from "./ui/MaskedInput.ts";
 export type { MaskedInputConfig } from "./ui/MaskedInput.ts";
+
+// Sprite system
+export type {
+  SpriteCell,
+  SpriteCategory,
+  SpriteTemplate,
+  SpriteInstance,
+  SpriteConfig,
+} from "./sprites/index.ts";
+export { DEFAULT_SPRITE_CONFIG, PixelBuffer } from "./sprites/index.ts";

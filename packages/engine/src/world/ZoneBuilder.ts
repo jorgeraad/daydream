@@ -1,4 +1,4 @@
-import type { BiomePalette, TileCell, TileLayer } from "../types.ts";
+import type { BiomePalette, SpriteInstance, TileCell, TileLayer } from "../types.ts";
 
 // ── Input types (matches AI ZoneSpec shape without importing from @daydream/ai) ──
 
@@ -41,6 +41,7 @@ export interface ZoneBuildResult {
   height: number;
   layers: TileLayer[];
   spawnPoint: { x: number; y: number };
+  sprites?: SpriteInstance[];
 }
 
 // ── Constants ────────────────────────────────────────────────

@@ -42,6 +42,7 @@ export type {
   PlayerState,
   PlayerStats,
   Point,
+  SpriteInstance,
   TileCell,
   TileLayer,
   TileLayerName,
@@ -96,6 +97,7 @@ export {
   PlayerStateSchema,
   PlayerStatsSchema,
   PointSchema,
+  SpriteInstanceSchema,
   TileCellSchema,
   TileLayerNameSchema,
   TileLayerSchema,
@@ -116,6 +118,18 @@ export { zoneId, parseZoneCoords, getTileAt, getLayer, isPassable, adjacentZoneI
 export { createBiomeConfig, blendPalettes } from "./world/BiomeSystem.ts";
 export { ZoneBuilder } from "./world/ZoneBuilder.ts";
 export type { ZoneBuildSpec, ZoneBuildResult, BuildingVisual, ObjectVisual } from "./world/ZoneBuilder.ts";
+export { ZoneManager, preloadOrder } from "./world/ZoneManager.ts";
+export type {
+  ZoneStore,
+  ZoneGeneratorFn,
+  ZoneGenerationContext,
+  AdjacentZoneHint,
+  EdgeTile,
+  EdgeSignature,
+  ZoneManagerOptions,
+} from "./world/ZoneManager.ts";
+export { DEFAULT_ZONE_CONFIG } from "./world/zone-config.ts";
+export type { ZoneConfig } from "./world/zone-config.ts";
 
 // Character
 export { createDefaultMemory, getRelevantMemories, addConversationMemory, getRelationship, setRelationship } from "./character/Character.ts";

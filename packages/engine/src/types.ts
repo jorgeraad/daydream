@@ -166,6 +166,15 @@ export const BiomeDistributionSchema = z.object({
 });
 export type BiomeDistribution = z.infer<typeof BiomeDistributionSchema>;
 
+// ── Sprite Instances ────────────────────────────────────────
+
+export const SpriteInstanceSchema = z.object({
+  templateId: z.string(),
+  position: PointSchema,
+  tint: z.string().optional(),
+});
+export type SpriteInstance = z.infer<typeof SpriteInstanceSchema>;
+
 // Forward-declare ZoneSchema (needs BiomeConfig)
 export const ZoneSchema = z.object({
   id: ZoneIdSchema,
@@ -180,6 +189,7 @@ export const ZoneSchema = z.object({
   generationSeed: z.string(),
   lastVisited: z.number(),
   metadata: ZoneMetadataSchema,
+  sprites: z.array(SpriteInstanceSchema).optional(),
 });
 export type Zone = z.infer<typeof ZoneSchema>;
 
