@@ -9,6 +9,8 @@ import {
   isCollision,
   isCharacterAt,
   LoadingScreen,
+  TransitionManager,
+  LoadingGate,
   NarrativeBar,
   DialoguePanel,
   forestPalette,
@@ -17,8 +19,22 @@ import {
   characterPresets,
   biomePalettes,
 } from "@daydream/renderer";
-import { EventBus, WorldState } from "@daydream/engine";
-import type { Character } from "@daydream/engine";
+import {
+  EventBus,
+  WorldState,
+  ZoneManager,
+  adjacentZoneIds,
+  parseZoneCoords,
+} from "@daydream/engine";
+import type {
+  Character,
+  Direction,
+  Zone,
+  ZoneId,
+  WorldSeed,
+  Point,
+} from "@daydream/engine";
+import type { ZoneStore, ZoneGeneratorFn } from "@daydream/engine";
 import type { ZoneData, TileCell, TileLayer } from "@daydream/renderer";
 import type { BuildingVisual, ObjectVisual, ZoneBuildResult } from "@daydream/engine";
 import { AIClient, ContextManager } from "@daydream/ai";
@@ -27,6 +43,7 @@ import { DialogueManager } from "./DialogueManager.ts";
 import { TitleScreen } from "./TitleScreen.ts";
 import type { TitleScreenResult } from "./TitleScreen.ts";
 import { WorldGenerator, type ZoneCharacter } from "./WorldGenerator.ts";
+import { SaveManager } from "./SaveManager.ts";
 import { SettingsManager } from "./settings/SettingsManager.ts";
 import { SettingsScreen } from "./settings/SettingsScreen.ts";
 import { OnboardingScreen } from "./OnboardingScreen.ts";
@@ -124,6 +141,49 @@ function toCharacter(c: ZoneCharacter, zoneId: string, worldId: string): Charact
       },
     },
     relationships: new Map(),
+  };
+}
+
+// ── Zone-to-ZoneData bridge ─────────────────────────────────
+
+/** Convert an engine Zone to a renderer ZoneData for tile rendering. */
+function zoneToZoneData(zone: Zone): ZoneData {
+  return {
+    id: zone.id,
+    width: zone.tiles[0]?.width ?? 80,
+    height: zone.tiles[0]?.height ?? 40,
+    layers: zone.tiles as TileLayer[],
+  };
+}
+
+// ── ZoneStore factory (wraps SaveManager) ───────────────────
+
+function createZoneStore(saveManager: SaveManager, worldState: WorldState): ZoneStore {
+  return {
+    async load(id: ZoneId): Promise<Zone | null> {
+      // Check if zone is already in WorldState (covers initial zone + previously loaded)
+      const existing = worldState.zones.get(id);
+      if (existing) return existing;
+      // In a full implementation, this would query SaveManager's zones table.
+      // For now, zones are managed in memory via WorldState.
+      return null;
+    },
+    async save(zone: Zone): Promise<void> {
+      worldState.zones.set(zone.id as ZoneId, zone);
+      worldState.markZoneDirty(zone.id as ZoneId);
+    },
+    async saveIfDirty(zone: Zone): Promise<void> {
+      // Mark for next auto-save cycle
+      worldState.markZoneDirty(zone.id as ZoneId);
+    },
+  };
+}
+
+// ── ZoneGeneratorFn factory (wraps WorldGenerator) ──────────
+
+function createZoneGeneratorFn(generator: WorldGenerator): ZoneGeneratorFn {
+  return async (id, coords, context) => {
+    return generator.generateZoneAt(id, coords, context);
   };
 }
 
@@ -329,14 +389,27 @@ function buildTestCharacters(zone: ZoneData): Character[] {
 
 const BOTTOM_BAR_HEIGHT = 10;
 
-function startGameplay(
-  renderer: Awaited<ReturnType<typeof createCliRenderer>>,
-  zone: ZoneData,
-  characters: Character[],
-  playerX: number,
-  playerY: number,
-  aiClient?: AIClient,
-): void {
+interface GameplayOptions {
+  renderer: Awaited<ReturnType<typeof createCliRenderer>>;
+  zone: ZoneData;
+  characters: Character[];
+  playerX: number;
+  playerY: number;
+  aiClient?: AIClient;
+  zoneManager?: ZoneManager;
+  worldState?: WorldState;
+}
+
+function startGameplay(opts: GameplayOptions): void {
+  const {
+    renderer,
+    characters,
+    aiClient,
+    zoneManager,
+  } = opts;
+  let { zone } = opts;
+
+  const gameLogger = getLogger(["daydream", "game", "gameplay"]);
   const eventBus = new EventBus();
   const inputRouter = new InputRouter(eventBus);
 
@@ -346,14 +419,17 @@ function startGameplay(
 
   const viewport = new ViewportManager(viewW, viewH);
 
-  let px = playerX;
-  let py = playerY;
+  let px = opts.playerX;
+  let py = opts.playerY;
+  let transitioning = false;
 
   const fb = new FrameBufferRenderable(renderer, {
     id: "viewport",
     width: viewW,
     height: viewH,
     onKeyDown(key) {
+      // Block input during zone transitions
+      if (transitioning) return;
       inputRouter.handleKey(key);
     },
   });
@@ -364,12 +440,16 @@ function startGameplay(
   const tileRenderer = new TileRenderer(fb.frameBuffer);
   const charRenderer = new CharacterRenderer(fb.frameBuffer);
 
+  // Transition systems (only active when zoneManager is available)
+  const transitionManager = zoneManager ? new TransitionManager(renderer) : null;
+  const loadingGate = zoneManager ? new LoadingGate() : null;
+
   // Bottom bar: narrative during exploration, dialogue panel during conversation
   const narrativeBar = new NarrativeBar(renderer);
   const dialoguePanel = new DialoguePanel(renderer);
 
-  // Bootstrap WorldState for dialogue and chronicle
-  const worldState = new WorldState({
+  // Use provided WorldState or bootstrap a minimal one
+  const worldState = opts.worldState ?? new WorldState({
     worldId: "world_" + Date.now(),
     worldSeed: {
       originalPrompt: "",
@@ -439,14 +519,162 @@ function startGameplay(
     renderer.requestRender();
   });
 
+  // ── Zone edge detection ─────────────────────────────────────
+
+  /**
+   * Detect which direction the player would cross a zone boundary.
+   * Returns the direction if the next position is outside the current zone,
+   * or null if the movement stays within the zone.
+   */
+  function detectZoneEdgeCrossing(nx: number, ny: number): Direction | null {
+    if (nx < 0) return "left";
+    if (nx >= zone.width) return "right";
+    if (ny < 0) return "up";
+    if (ny >= zone.height) return "down";
+    return null;
+  }
+
+  /**
+   * Calculate the player's position on the opposite edge after crossing.
+   * E.g., walking off the right edge places you at x=0 on the new zone.
+   */
+  function oppositeEdgePosition(direction: Direction, currentX: number, currentY: number): { x: number; y: number } {
+    switch (direction) {
+      case "left":
+        return { x: zone.width - 1, y: currentY };
+      case "right":
+        return { x: 0, y: currentY };
+      case "up":
+        return { x: currentX, y: zone.height - 1 };
+      case "down":
+        return { x: currentX, y: 0 };
+    }
+  }
+
+  // ── Zone transition handling ────────────────────────────────
+
+  async function handleZoneTransition(direction: Direction): Promise<void> {
+    if (!zoneManager || !transitionManager || transitioning) return;
+
+    transitioning = true;
+    gameLogger.info("Zone transition started: direction={dir}", { dir: direction });
+
+    // Determine the target zone
+    const currentZoneCoords = parseZoneCoords(zone.id);
+    if (!currentZoneCoords) {
+      gameLogger.error("Cannot parse current zone coords: {id}", { id: zone.id });
+      transitioning = false;
+      return;
+    }
+
+    const adjacent = adjacentZoneIds(currentZoneCoords);
+    const targetZoneId = adjacent[direction] as ZoneId;
+
+    // Check if the target zone is ready
+    if (!zoneManager.isReady(targetZoneId)) {
+      // Show loading gate while we wait for the zone
+      if (loadingGate) {
+        loadingGate.show(direction, zone);
+        renderFrame();
+      }
+
+      gameLogger.info("Waiting for zone {id} to be ready", { id: targetZoneId });
+      await zoneManager.ensureZone(targetZoneId);
+
+      // Hide loading gate
+      if (loadingGate) {
+        loadingGate.hide();
+      }
+    }
+
+    // Calculate where player appears in the new zone
+    const newPos = oppositeEdgePosition(direction, px, py);
+
+    // Perform the fade transition
+    const zoneConfig = zoneManager.getConfig();
+    await transitionManager.fadeTransition(
+      () => {
+        // This runs at the midpoint when screen is black
+
+        // Activate the new zone (triggers preloadAdjacent + unloadDistant internally)
+        // Note: activateZone is async but we fire-and-forget from the sync callback.
+        // The zone is already ensured above, so this primarily updates internal state.
+        zoneManager.activateZone(targetZoneId, direction).catch((err) => {
+          gameLogger.error("Zone activation failed: {err}", {
+            err: err instanceof Error ? err.message : String(err),
+          });
+        });
+
+        // Get the new zone data for rendering
+        const newZone = zoneManager.getZone(targetZoneId);
+        if (newZone) {
+          zone = zoneToZoneData(newZone);
+          worldState.activeZoneId = targetZoneId;
+        }
+
+        // Reposition player at opposite edge
+        px = newPos.x;
+        py = newPos.y;
+
+        // Update WorldState player position
+        worldState.player.position.zone = targetZoneId;
+        worldState.player.position.x = px;
+        worldState.player.position.y = py;
+
+        // Update discovered zones and stats
+        if (!worldState.player.journal.discoveredZones.includes(targetZoneId)) {
+          worldState.player.journal.discoveredZones.push(targetZoneId);
+          worldState.player.stats.zonesExplored = worldState.player.journal.discoveredZones.length;
+          gameLogger.info("Discovered new zone: {id}", { id: targetZoneId });
+        }
+
+        // Update camera and re-render
+        viewport.updateCamera(px, py, zone.width, zone.height);
+        tileRenderer.renderZone(zone, viewport, px, py);
+        charRenderer.renderCharacters(characters, viewport);
+        charRenderer.renderNameplates(characters, { x: px, y: py }, viewport);
+      },
+      {
+        fadeOutMs: zoneConfig.transitionFadeOutMs,
+        fadeInMs: zoneConfig.transitionFadeInMs,
+      },
+    );
+
+    transitioning = false;
+    updateMovementContext();
+    renderFrame();
+
+    gameLogger.info("Zone transition complete: now in {id} at ({x}, {y})", {
+      id: zone.id,
+      x: px,
+      y: py,
+    });
+  }
+
+  // ── Movement + rendering ────────────────────────────────────
+
   function updateMovementContext() {
     inputRouter.setMovementContext({
       playerX: px,
       playerY: py,
       characters,
       tryMove(dx: number, dy: number) {
+        if (transitioning) return;
+
         const nx = px + dx;
         const ny = py + dy;
+
+        // Check for zone edge crossing when ZoneManager is available
+        if (zoneManager) {
+          const edgeDirection = detectZoneEdgeCrossing(nx, ny);
+          if (edgeDirection !== null) {
+            // Trigger async zone transition — don't block the input handler
+            handleZoneTransition(edgeDirection);
+            return;
+          }
+        }
+
+        // Normal within-zone movement
         if (!isCollision(zone, nx, ny) && !isCharacterAt(characters, nx, ny)) {
           px = nx;
           py = ny;
@@ -465,6 +693,18 @@ function startGameplay(
     tileRenderer.renderZone(zone, viewport, px, py);
     charRenderer.renderCharacters(characters, viewport);
     charRenderer.renderNameplates(characters, { x: px, y: py }, viewport);
+
+    // Render loading gate overlay if active
+    if (loadingGate?.active) {
+      loadingGate.render(
+        fb.frameBuffer,
+        viewport.cameraX,
+        viewport.cameraY,
+        viewport.viewWidth,
+        viewport.viewHeight,
+      );
+    }
+
     renderer.requestRender();
   }
 
@@ -544,10 +784,12 @@ async function main() {
   let spawnX: number;
   let spawnY: number;
   let aiClient: AIClient | undefined;
+  let worldSeed: WorldSeed | undefined;
+  let generator: WorldGenerator | undefined;
 
   try {
     aiClient = new AIClient({ apiKey: settingsManager.getApiKey("anthropic") });
-    const generator = new WorldGenerator(
+    generator = new WorldGenerator(
       aiClient,
       toBuildingVisuals(),
       toObjectVisuals(),
@@ -558,6 +800,7 @@ async function main() {
     });
 
     zone = world.zone;
+    worldSeed = world.seed;
     spawnX = world.zone.spawnPoint.x;
     spawnY = world.zone.spawnPoint.y;
 
@@ -600,7 +843,91 @@ async function main() {
     characterCount: characters.length,
   });
 
-  startGameplay(renderer, zone, characters, spawnX, spawnY, aiClient);
+  // Build WorldState with real world seed if available
+  const worldId = "world_" + Date.now();
+  const worldState = new WorldState({
+    worldId,
+    worldSeed: worldSeed ?? {
+      originalPrompt: playerPrompt,
+      setting: { name: "Unknown", type: "wilderness", era: "medieval", tone: "mysterious", description: "" },
+      biomeMap: {
+        center: {
+          type: "forest",
+          terrain: { primary: "grass", secondary: "dirt", features: [] },
+          palette: {
+            ground: { chars: ["."], fg: ["#4a7a4a"], bg: "#1a2a1a" },
+            vegetation: {},
+          },
+          density: { vegetation: 0.5, structures: 0.1, characters: 0.05 },
+          ambient: { lighting: "natural" },
+        },
+        distribution: { type: "single", seed: 0, biomes: { forest: 1 } },
+      },
+      initialNarrative: { hooks: [], mainTension: "", atmosphere: "" },
+      worldRules: { hasMagic: false, techLevel: "medieval", economy: "barter", dangers: [], customs: [] },
+    },
+    createdAt: Date.now(),
+    player: {
+      position: { zone: zone.id, x: spawnX, y: spawnY },
+      facing: "down",
+      inventory: [],
+      journal: { entries: [], knownCharacters: [], discoveredZones: [zone.id], activeQuests: [] },
+      stats: { totalPlayTime: 0, conversationsHad: 0, zonesExplored: 1, daysSurvived: 0 },
+    },
+    activeZoneId: zone.id,
+  });
+
+  // Wire up ZoneManager when we have a generator and world seed
+  let zoneManager: ZoneManager | undefined;
+  if (worldSeed && generator) {
+    const saveManager = new SaveManager(worldId);
+    const zoneStore = createZoneStore(saveManager, worldState);
+    const zoneGeneratorFn = createZoneGeneratorFn(generator);
+
+    zoneManager = new ZoneManager({
+      worldSeed,
+      zoneGenerator: zoneGeneratorFn,
+      zoneStore,
+    });
+
+    // Register the initial zone with ZoneManager by converting ZoneData to Zone
+    // and storing it so ZoneManager knows about it
+    const initialZone: Zone = {
+      id: zone.id as ZoneId,
+      coords: parseZoneCoords(zone.id as ZoneId) ?? { x: 0, y: 0 },
+      biome: worldSeed.biomeMap.center,
+      tiles: zone.layers as any,
+      characters: characters.map((c) => c.id),
+      buildings: [],
+      objects: [],
+      exits: [],
+      generated: true,
+      generationSeed: worldSeed.originalPrompt,
+      lastVisited: Date.now(),
+      metadata: {
+        name: worldSeed.setting.name,
+        description: worldSeed.setting.description,
+      },
+    };
+
+    // Store in WorldState so the zone store can find it
+    worldState.zones.set(initialZone.id as ZoneId, initialZone);
+
+    // Activate the initial zone (sets it as active, triggers preloading of neighbors)
+    await zoneManager.activateZone(initialZone.id as ZoneId);
+    logger.info("ZoneManager initialized, initial zone activated with preloading");
+  }
+
+  startGameplay({
+    renderer,
+    zone,
+    characters,
+    playerX: spawnX,
+    playerY: spawnY,
+    aiClient,
+    zoneManager,
+    worldState,
+  });
 }
 
 main().catch(console.error);

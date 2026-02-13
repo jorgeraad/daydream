@@ -1,5 +1,6 @@
-import type { WorldSeed, BiomePalette } from "@daydream/engine";
+import type { WorldSeed, BiomePalette, Point, Direction, Zone, ZoneId } from "@daydream/engine";
 import { ZoneBuilder, type ZoneBuildResult, type BuildingVisual, type ObjectVisual } from "@daydream/engine";
+import type { ZoneGenerationContext, AdjacentZoneHint } from "@daydream/engine";
 import {
   AIClient,
   WORLD_CREATION_SYSTEM_PROMPT,
@@ -109,6 +110,126 @@ export class WorldGenerator {
     });
 
     return { seed, zone, characters, palette };
+  }
+
+  /**
+   * Generate a zone at arbitrary coordinates with full ZoneGenerationContext.
+   * Used by ZoneManager's ZoneGeneratorFn callback for on-demand zone creation.
+   */
+  async generateZoneAt(
+    id: ZoneId,
+    coords: Point,
+    context: ZoneGenerationContext,
+  ): Promise<Zone> {
+    const start = performance.now();
+    logger.info("Generating zone {id} at ({x}, {y})", {
+      id,
+      x: coords.x,
+      y: coords.y,
+    });
+
+    // Build adjacent zone description from hints
+    const adjacentDesc = this.buildAdjacentDescription(context.adjacentHints);
+
+    // Build narrative context
+    const narrativeThreads = context.chronicle.activeThreads.length > 0
+      ? context.chronicle.activeThreads.join(", ")
+      : "No active threads.";
+    const recentChronicle = context.chronicle.recentSummary || "The player continues exploring.";
+
+    // Call AI to generate zone spec
+    const zoneSpec = await this.generateZoneSpec(
+      context.worldSeed,
+      coords,
+      adjacentDesc,
+      narrativeThreads,
+      recentChronicle,
+    );
+
+    // Select palette based on biome
+    const palette = this.selectPalette(context.biome.type);
+
+    // Build tile data
+    const buildResult = this.zoneBuilder.build(
+      {
+        terrain: {
+          primaryGround: zoneSpec.terrain.primary_ground,
+          features: zoneSpec.terrain.features,
+        },
+        buildings: zoneSpec.buildings,
+        objects: zoneSpec.objects,
+      },
+      id,
+      palette,
+    );
+
+    const duration = Math.round(performance.now() - start);
+    logger.info("Zone {id} generated in {duration}ms", { id, duration });
+
+    // Convert ZoneBuildResult to a full engine Zone
+    return {
+      id,
+      coords,
+      biome: context.biome,
+      tiles: buildResult.layers,
+      characters: [],
+      buildings: [],
+      objects: [],
+      exits: [],
+      generated: true,
+      generationSeed: `${context.worldSeed.originalPrompt}_${coords.x}_${coords.y}`,
+      lastVisited: Date.now(),
+      metadata: {
+        name: zoneSpec.name ?? id,
+        description: zoneSpec.description ?? "",
+      },
+    };
+  }
+
+  private buildAdjacentDescription(hints: Map<Direction, AdjacentZoneHint>): string {
+    if (hints.size === 0) return "No adjacent zones explored yet.";
+    const parts: string[] = [];
+    for (const [dir, hint] of hints) {
+      parts.push(`${dir}: "${hint.name}" (${hint.biome}) — ${hint.description}`);
+    }
+    return parts.join("\n");
+  }
+
+  private async generateZoneSpec(
+    seed: WorldSeed,
+    coords: Point,
+    adjacentZones: string,
+    narrativeThreads: string,
+    recentChronicle: string,
+  ): Promise<ZoneSpec> {
+    const response = await this.aiClient.generate({
+      system: ZONE_GENERATION_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: buildZoneGenerationPrompt({
+            coords,
+            worldSetting: `${seed.setting.name} — ${seed.setting.description}`,
+            biomeConfig: `${seed.biomeMap.center.type} (${seed.biomeMap.center.terrain.primary})`,
+            adjacentZones,
+            narrativeThreads,
+            recentChronicle,
+          }),
+        },
+      ],
+      tools: [createZoneTool],
+      model: "sonnet",
+      maxTokens: 4096,
+      temperature: 0.7,
+      taskType: "zone-gen",
+    });
+
+    const toolUse = response.toolUse[0];
+    if (!toolUse) {
+      throw new Error("AI did not return a zone spec tool response");
+    }
+
+    return parseZoneResponse(toolUse);
   }
 
   // ── Private: AI calls ──────────────────────────────────
