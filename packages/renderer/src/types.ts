@@ -1,5 +1,9 @@
 // Renderer-specific types for tile rendering, palettes, and viewport
 
+import type { SpriteInstance } from "./sprites/types.ts";
+
+export type { SpriteInstance };
+
 export interface TileCell {
   char: string;
   fg: string; // hex color
@@ -22,6 +26,8 @@ export interface ZoneData {
   width: number;
   height: number;
   layers: TileLayer[];
+  sprites?: SpriteInstance[];
+  biomeType?: string;
 }
 
 export interface BiomePalette {

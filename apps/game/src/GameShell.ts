@@ -12,6 +12,8 @@ import {
   ContextPanel,
   MiniMap,
   NarrativeBar,
+  SpriteRegistry,
+  ALL_SPRITES,
 } from "@daydream/renderer";
 import type { ZoneData } from "@daydream/renderer";
 
@@ -34,6 +36,7 @@ export class GameShell {
   // Game systems
   private tileRenderer: TileRenderer;
   private viewportManager: ViewportManager;
+  private spriteRegistry: SpriteRegistry;
 
   // Game state
   private zone: ZoneData;
@@ -101,7 +104,9 @@ export class GameShell {
 
     // --- Initialize game systems ---
     this.viewportManager = new ViewportManager(vpWidth, vpHeight);
-    this.tileRenderer = new TileRenderer(this.viewportFB.frameBuffer);
+    this.spriteRegistry = new SpriteRegistry();
+    this.spriteRegistry.registerBuiltins(ALL_SPRITES);
+    this.tileRenderer = new TileRenderer(this.viewportFB.frameBuffer, this.spriteRegistry);
 
     // Focus viewport for keyboard input
     this.viewportFB.focus();
@@ -253,7 +258,7 @@ export class GameShell {
     const newHeight = this.viewportFB.height;
 
     this.viewportManager.resize(newWidth, newHeight);
-    this.tileRenderer = new TileRenderer(this.viewportFB.frameBuffer);
+    this.tileRenderer = new TileRenderer(this.viewportFB.frameBuffer, this.spriteRegistry);
 
     this.viewportManager.updateCamera(
       this.playerX,

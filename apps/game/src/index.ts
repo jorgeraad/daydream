@@ -18,6 +18,8 @@ import {
   objectGlyphs,
   characterPresets,
   biomePalettes,
+  SpriteRegistry,
+  ALL_SPRITES,
 } from "@daydream/renderer";
 import {
   EventBus,
@@ -44,6 +46,7 @@ import { DialogueManager } from "./DialogueManager.ts";
 import { TitleScreen } from "./TitleScreen.ts";
 import type { TitleScreenResult } from "./TitleScreen.ts";
 import { WorldGenerator, type ZoneCharacter } from "./WorldGenerator.ts";
+import { PortalPrompt } from "./PortalPrompt.ts";
 import { SaveManager } from "./SaveManager.ts";
 import { SettingsManager } from "./settings/SettingsManager.ts";
 import { SettingsScreen } from "./settings/SettingsScreen.ts";
@@ -399,6 +402,8 @@ interface GameplayOptions {
   aiClient?: AIClient;
   zoneManager?: ZoneManager;
   worldState?: WorldState;
+  generator?: WorldGenerator;
+  saveManager?: SaveManager;
 }
 
 function startGameplay(opts: GameplayOptions): void {
@@ -438,7 +443,9 @@ function startGameplay(opts: GameplayOptions): void {
   fb.focusable = true;
   fb.focus();
 
-  const tileRenderer = new TileRenderer(fb.frameBuffer);
+  const spriteRegistry = new SpriteRegistry();
+  spriteRegistry.registerBuiltins(ALL_SPRITES);
+  const tileRenderer = new TileRenderer(fb.frameBuffer, spriteRegistry);
   const charRenderer = new CharacterRenderer(fb.frameBuffer);
 
   // Transition systems (only active when zoneManager is available)
@@ -516,6 +523,15 @@ function startGameplay(opts: GameplayOptions): void {
     locationBrowser.handleKey(key);
   });
 
+  // Portal prompt overlay
+  const portalPrompt = new PortalPrompt(renderer);
+
+  // Wire portal mode handler (portal prompt captures its own input via GameInput)
+  inputRouter.setPortalHandler(() => {
+    // Portal handles its own input — no key forwarding needed.
+    // The GameInput's onSubmit/onCancel callbacks resolve the promise.
+  });
+
   // Mode changes → swap bottom bar components and show/hide overlays
   eventBus.on("mode:changed", ({ from, to }) => {
     if (to === "dialogue") {
@@ -541,6 +557,23 @@ function startGameplay(opts: GameplayOptions): void {
     // Closing map from another trigger (safety net)
     if (from === "map" && locationBrowser.isVisible) {
       locationBrowser.hide();
+    }
+
+    // Opening portal → show portal prompt, wait for result
+    if (to === "portal") {
+      portalPrompt.show().then((result) => {
+        if (result.type === "submit" && opts.generator && zoneManager) {
+          handlePortalGeneration(result.description);
+        } else {
+          portalPrompt.hide();
+          inputRouter.setMode("exploration");
+        }
+      });
+    }
+
+    // Closing portal from another trigger (safety net)
+    if (from === "portal" && portalPrompt.isVisible && !portalPrompt.isGenerating) {
+      portalPrompt.hide();
     }
 
     renderer.requestRender();
@@ -746,6 +779,173 @@ function startGameplay(opts: GameplayOptions): void {
       x: px,
       y: py,
     });
+  }
+
+  // ── Portal generation ─────────────────────────────────────
+
+  /**
+   * Find the next unoccupied zone coordinate using a spiral search
+   * outward from the origin. Returns the first coordinate where no zone exists.
+   */
+  function findNextFreeCoordinate(): Point {
+    // Spiral outward from center (0,0)
+    let x = 0, y = 0;
+    let dx = 1, dy = 0;
+    let segmentLength = 1;
+    let segmentPassed = 0;
+    let turnsCompleted = 0;
+
+    // Skip (0,0) since that's the starting zone
+    for (let step = 0; step < 400; step++) {
+      x += dx;
+      y += dy;
+      segmentPassed++;
+
+      const candidateId = `zone_${x}_${y}` as ZoneId;
+      if (!worldState.zones.has(candidateId)) {
+        return { x, y };
+      }
+
+      if (segmentPassed === segmentLength) {
+        segmentPassed = 0;
+        // Turn left: (dx, dy) → (-dy, dx)
+        const tmp = dx;
+        dx = -dy;
+        dy = tmp;
+        turnsCompleted++;
+        if (turnsCompleted % 2 === 0) {
+          segmentLength++;
+        }
+      }
+    }
+
+    // Fallback: use a distant coordinate
+    return { x: 10, y: 10 };
+  }
+
+  async function handlePortalGeneration(description: string): Promise<void> {
+    if (!opts.generator || !zoneManager || !transitionManager || transitioning) {
+      portalPrompt.hide();
+      inputRouter.setMode("exploration");
+      return;
+    }
+
+    transitioning = true;
+    gameLogger.info("Portal generation started: {desc}", { desc: description });
+
+    // Auto-save current state before generation
+    if (opts.saveManager) {
+      gameLogger.info("Auto-saving before portal generation");
+      opts.saveManager.saveWorld(worldState);
+    }
+
+    // Show loading state on portal prompt
+    portalPrompt.showLoading("Opening portal...");
+
+    try {
+      // Find a free coordinate for the new zone
+      const coords = findNextFreeCoordinate();
+      const newZoneId = `zone_${coords.x}_${coords.y}` as ZoneId;
+
+      gameLogger.info("Portal target: {id} at ({x}, {y})", {
+        id: newZoneId,
+        x: coords.x,
+        y: coords.y,
+      });
+
+      // Build generation context from ZoneManager's world seed
+      const zoneConfig = zoneManager.getConfig();
+      const context: import("@daydream/engine").ZoneGenerationContext = {
+        worldSeed: worldState.worldSeed,
+        biome: worldState.worldSeed.biomeMap.center,
+        adjacentHints: new Map(),
+        edgeSignatures: new Map(),
+        chronicle: { recentSummary: "", activeThreads: [] },
+      };
+
+      // Generate the zone with portal description
+      const newZone = await opts.generator.generatePortalZone(
+        newZoneId,
+        coords,
+        context,
+        description,
+        (status) => portalPrompt.setStatus(status),
+      );
+
+      // Register the new zone in WorldState
+      worldState.zones.set(newZoneId, newZone);
+      worldState.markZoneDirty(newZoneId);
+
+      // Hide portal prompt
+      portalPrompt.hide();
+
+      // Convert to ZoneData for rendering
+      const newZoneData = zoneToZoneData(newZone);
+      const spawnX = Math.floor(newZoneData.width / 2);
+      const spawnY = Math.floor(newZoneData.height / 2);
+
+      // Perform fade transition to the new zone
+      await transitionManager.fadeTransition(
+        () => {
+          // Activate zone in ZoneManager
+          zoneManager.activateZone(newZoneId).catch((err) => {
+            gameLogger.error("Zone activation during portal failed: {err}", {
+              err: err instanceof Error ? err.message : String(err),
+            });
+          });
+
+          // Swap zone data
+          zone = newZoneData;
+          worldState.activeZoneId = newZoneId;
+
+          // Position player at center of new zone
+          px = spawnX;
+          py = spawnY;
+
+          worldState.player.position.zone = newZoneId;
+          worldState.player.position.x = px;
+          worldState.player.position.y = py;
+
+          // Add to discovered zones
+          if (!worldState.player.journal.discoveredZones.includes(newZoneId)) {
+            worldState.player.journal.discoveredZones.push(newZoneId);
+            worldState.player.stats.zonesExplored = worldState.player.journal.discoveredZones.length;
+            gameLogger.info("Discovered new zone via portal: {id}", { id: newZoneId });
+          }
+
+          // Update camera and re-render
+          viewport.updateCamera(px, py, zone.width, zone.height);
+          tileRenderer.renderZone(zone, viewport, px, py);
+          charRenderer.renderCharacters(characters, viewport);
+          charRenderer.renderNameplates(characters, { x: px, y: py }, viewport);
+        },
+        {
+          fadeOutMs: zoneConfig.transitionFadeOutMs,
+          fadeInMs: zoneConfig.transitionFadeInMs,
+        },
+      );
+
+      transitioning = false;
+      inputRouter.setMode("exploration");
+      updateMovementContext();
+      renderFrame();
+
+      gameLogger.info("Portal generation complete: now in {id} at ({x}, {y})", {
+        id: zone.id,
+        x: px,
+        y: py,
+      });
+    } catch (err) {
+      gameLogger.error("Portal generation failed: {err}", {
+        err: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+
+      portalPrompt.hide();
+      transitioning = false;
+      inputRouter.setMode("exploration");
+      renderFrame();
+    }
   }
 
   // ── Movement + rendering ────────────────────────────────────
@@ -976,8 +1176,9 @@ async function main() {
 
   // Wire up ZoneManager when we have a generator and world seed
   let zoneManager: ZoneManager | undefined;
+  let saveManager: SaveManager | undefined;
   if (worldSeed && generator) {
-    const saveManager = new SaveManager(worldId);
+    saveManager = new SaveManager(worldId);
     const zoneStore = createZoneStore(saveManager, worldState);
     const zoneGeneratorFn = createZoneGeneratorFn(generator);
 
@@ -1024,6 +1225,8 @@ async function main() {
     aiClient,
     zoneManager,
     worldState,
+    generator,
+    saveManager,
   });
 }
 
