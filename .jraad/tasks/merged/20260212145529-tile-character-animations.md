@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 14:55:29 EST |
-| **Last Modified**  | 2026-02-12 21:29:15 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 22:00:00 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | brave-lynx |
 | **Blocked-By**     | 20260212145509 |
@@ -63,3 +63,6 @@ Implementation complete. Created 4 animation classes and 4 test files (50 new te
 **Files modified:**
 - `packages/renderer/src/animation/AnimationManager.ts` — Removed internal TileCycleAnimation class, imported concrete types, updated `registerZoneAnimations` to select WaterShimmer/TorchFlicker/TileCycleAnimation based on tile character
 - `packages/renderer/src/index.ts` — Added exports for WaterShimmer, TorchFlicker, IdleAnimation, TileCycleAnimation
+
+### 2026-02-12 22:00:00 EST
+Branch merged to main.

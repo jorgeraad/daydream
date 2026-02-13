@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 14:55:46 EST |
-| **Last Modified**  | 2026-02-12 21:29:21 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 22:00:00 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | bright-panda |
 | **Blocked-By**     | 20260212145509 |
@@ -52,3 +52,6 @@ Starting work on branch `main`. Agent: bright-panda. Blocker 20260212145509 (ani
 
 ### 2026-02-12 21:29:21 EST
 Task completed. Extracted TimeOfDayOverlay to `packages/renderer/src/atmosphere/TimeOfDayOverlay.ts` as a standalone, exported class. Added `applyColorTransform(hex, transform)` helper with the formula `(channel * mul + add) * brightness` and clamping to [0, 255]. Added `isIdentityTransform()` for fast-path optimization (used in applyColorTransform and as a public helper). Added `parseHex()` and `easeInOut()` as exported utilities. Updated AnimationManager to import from the extracted module instead of its internal class. All 57 new tests pass (color math, hex parsing, identity checks, easing curve properties, transition lifecycle, chained transitions, zero-duration snap, integration with applyColorTransform). All 388 renderer tests pass including the existing 81 animation tests.
+
+### 2026-02-12 22:00:00 EST
+Branch merged to main.

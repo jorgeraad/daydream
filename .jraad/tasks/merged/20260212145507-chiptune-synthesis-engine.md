@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 14:55:07 EST |
-| **Last Modified**  | 2026-02-12 21:31:32 EST |
-| **Status**         | completed |
+| **Last Modified**  | 2026-02-12 22:00:00 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | pure-crane |
 | **Blocked-By**     | 20260212145506 |
@@ -68,3 +68,6 @@ Completed all implementation. Created:
 - Updated `packages/audio/src/index.ts` with all new exports. Handled overlap with existing SFX module's `WaveformSchema` by exporting the canonical version from `types.ts`.
 - Added `zod` dependency to audio package via Bun catalog.
 - 78 new synth tests across 4 test files (oscillators, wav-encoder, Sequencer, ChiptuneEngine). All 165 audio package tests pass. No type errors in audio package files (pre-existing errors in engine/renderer/game are unrelated).
+
+### 2026-02-12 22:00:00 EST
+Branch merged to main.
