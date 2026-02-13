@@ -29,6 +29,13 @@
         "zod-to-json-schema": "catalog:",
       },
     },
+    "packages/audio": {
+      "name": "@daydream/audio",
+      "version": "0.0.1",
+      "dependencies": {
+        "zod": "catalog:",
+      },
+    },
     "packages/engine": {
       "name": "@daydream/engine",
       "version": "0.0.1",
@@ -59,6 +66,8 @@
     "@anthropic-ai/sdk": ["@anthropic-ai/sdk@0.39.0", "", { "dependencies": { "@types/node": "^18.11.18", "@types/node-fetch": "^2.6.4", "abort-controller": "^3.0.0", "agentkeepalive": "^4.2.1", "form-data-encoder": "1.7.2", "formdata-node": "^4.3.2", "node-fetch": "^2.6.7" } }, "sha512-eMyDIPRZbt1CCLErRCi3exlAvNkBtRe+kW5vvJyef93PmNr/clstYgHhtvmkxN82nlKgzyGPCyGxrm0JQ1ZIdg=="],
 
     "@daydream/ai": ["@daydream/ai@workspace:packages/ai"],
+
+    "@daydream/audio": ["@daydream/audio@workspace:packages/audio"],
 
     "@daydream/engine": ["@daydream/engine@workspace:packages/engine"],
 

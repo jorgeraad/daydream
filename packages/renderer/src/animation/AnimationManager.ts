@@ -9,62 +9,10 @@ import type {
   ColorTransform,
   LiveRenderer,
 } from "./types.ts";
-import {
-  IDENTITY_TRANSFORM,
-  TIME_TRANSFORMS,
-  lerpTransform,
-} from "./types.ts";
-
-// ── TimeOfDayOverlay ────────────────────────────────────────
-
-/** Default transition duration: 30 seconds real time. */
-const DEFAULT_TRANSITION_DURATION = 30_000;
-
-/**
- * Manages smooth color transform transitions between time-of-day periods.
- * Interpolates from the current transform to the target over a configurable duration.
- */
-class TimeOfDayOverlay {
-  private current: ColorTransform = { ...IDENTITY_TRANSFORM };
-  private target: ColorTransform = { ...IDENTITY_TRANSFORM };
-  private transitionTimer = 0;
-  private transitionDuration: number;
-
-  constructor(transitionDuration: number = DEFAULT_TRANSITION_DURATION) {
-    this.transitionDuration = transitionDuration;
-  }
-
-  /** Set a new target time-of-day. When transitionProgress is 0, starts a new transition. */
-  setTarget(timeOfDay: TimeOfDay, transitionProgress: number): void {
-    if (transitionProgress === 0) {
-      // Snapshot current interpolated state as the new "from"
-      this.current = { ...this.getTransform() };
-      this.target = TIME_TRANSFORMS[timeOfDay];
-      this.transitionTimer = 0;
-    }
-  }
-
-  /** Advance the transition by deltaTime milliseconds. */
-  update(deltaTime: number): void {
-    if (this.transitionTimer < this.transitionDuration) {
-      this.transitionTimer = Math.min(
-        this.transitionTimer + deltaTime,
-        this.transitionDuration,
-      );
-    }
-  }
-
-  /** Get the current interpolated color transform. */
-  getTransform(): ColorTransform {
-    if (this.transitionDuration === 0) {
-      return { ...this.target };
-    }
-    const t = this.transitionTimer / this.transitionDuration;
-    // Ease-in-out for smooth visual transition
-    const ease = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
-    return lerpTransform(this.current, this.target, ease);
-  }
-}
+import { TileCycleAnimation } from "./TileCycleAnimation.ts";
+import { WaterShimmer } from "./WaterShimmer.ts";
+import { TorchFlicker } from "./TorchFlicker.ts";
+import { TimeOfDayOverlay } from "../atmosphere/TimeOfDayOverlay.ts";
 
 // ── AnimationManager ────────────────────────────────────────
 
@@ -89,7 +37,9 @@ export class AnimationManager {
 
   constructor(renderer: LiveRenderer, config: AnimationManagerConfig = {}) {
     this.renderer = renderer;
-    this.timeOfDayOverlay = new TimeOfDayOverlay(config.transitionDuration);
+    this.timeOfDayOverlay = new TimeOfDayOverlay({
+      transitionDuration: config.transitionDuration,
+    });
   }
 
   /** Register a new animation. Automatically requests live rendering. */
@@ -151,13 +101,20 @@ export class AnimationManager {
     this.timeOfDayOverlay.setTarget(timeOfDay, transitionProgress);
   }
 
+  /** Characters that indicate a water tile for animation type selection. */
+  private static readonly WATER_CHARS = new Set(["~", "\u2248", "\u223C"]); // ~, ≈, ∼
+
+  /** Characters that indicate a torch/fire tile for animation type selection. */
+  private static readonly TORCH_CHARS = new Set(["\u2020", "\u2606", "\u2726"]); // †, ☆, ✦
+
   /**
    * Scan a zone's tile layers and register animations for tiles with
    * `animated: true` and non-empty `animFrames`.
    *
-   * Creates a generic TileCycleAnimation for each animated tile.
-   * Concrete animation implementations (WaterShimmer, TorchFlicker) can be
-   * registered by downstream tasks that implement them.
+   * Selects the concrete animation type based on the tile's character:
+   * - Water characters (~, ≈, ∼) → WaterShimmer
+   * - Torch/fire characters (†, ☆, ✦) → TorchFlicker
+   * - All others → TileCycleAnimation (generic fallback)
    */
   registerZoneAnimations(zone: ZoneData): void {
     for (const layer of zone.layers) {
@@ -169,8 +126,14 @@ export class AnimationManager {
         const y = Math.floor(i / layer.width);
         const id = `tile_${layer.name}_${x}_${y}`;
 
-        // Register a generic frame-cycling animation
-        this.add(id, new TileCycleAnimation(x, y, tile.animFrames));
+        // Select animation type based on tile character
+        if (AnimationManager.WATER_CHARS.has(tile.char)) {
+          this.add(id, new WaterShimmer(x, y, tile.animFrames));
+        } else if (AnimationManager.TORCH_CHARS.has(tile.char)) {
+          this.add(id, new TorchFlicker(x, y, tile.animFrames));
+        } else {
+          this.add(id, new TileCycleAnimation(x, y, tile.animFrames));
+        }
       }
     }
   }
@@ -196,51 +159,3 @@ export class AnimationManager {
   }
 }
 
-// ── Built-in Generic Animation ──────────────────────────────
-
-/** Default interval for generic tile frame cycling (ms). */
-const DEFAULT_CYCLE_INTERVAL = 600;
-
-/**
- * Generic frame-cycling animation for any animated tile.
- * Cycles through a set of characters at a fixed interval.
- * Phase is staggered by position to avoid synchronized grids.
- */
-class TileCycleAnimation implements Animation {
-  finished = false;
-  private timer: number;
-  private frameIndex = 0;
-  private interval: number;
-  private frames: string[];
-  private x: number;
-  private y: number;
-
-  constructor(
-    x: number,
-    y: number,
-    frames: string[],
-    interval: number = DEFAULT_CYCLE_INTERVAL,
-  ) {
-    this.x = x;
-    this.y = y;
-    this.frames = frames;
-    this.interval = interval;
-    // Deterministic phase offset from position — prevents synchronized grid
-    this.timer = ((x * 7 + y * 13) % 5) * (interval / 5);
-  }
-
-  update(deltaTime: number): void {
-    this.timer += deltaTime;
-    if (this.timer >= this.interval) {
-      this.timer -= this.interval;
-      this.frameIndex = (this.frameIndex + 1) % this.frames.length;
-    }
-  }
-
-  applyOverrides(overrides: AnimationOverrides): void {
-    const key = `${this.x},${this.y}`;
-    overrides.set(key, {
-      char: this.frames[this.frameIndex],
-    });
-  }
-}

@@ -53,6 +53,21 @@ export type {
 export { IDENTITY_TRANSFORM, TIME_TRANSFORMS, lerpTransform } from "./animation/types.ts";
 export { AnimationManager } from "./animation/AnimationManager.ts";
 export type { AnimationManagerConfig } from "./animation/AnimationManager.ts";
+export { WaterShimmer } from "./animation/WaterShimmer.ts";
+export { TorchFlicker } from "./animation/TorchFlicker.ts";
+export { IdleAnimation } from "./animation/IdleAnimation.ts";
+export { TileCycleAnimation } from "./animation/TileCycleAnimation.ts";
+
+// Atmosphere / time-of-day system
+export {
+  TimeOfDayOverlay,
+  applyColorTransform,
+  isIdentityTransform,
+  parseHex,
+  easeInOut,
+  DEFAULT_TRANSITION_DURATION,
+} from "./atmosphere/TimeOfDayOverlay.ts";
+export type { TimeOfDayOverlayConfig } from "./atmosphere/TimeOfDayOverlay.ts";
 
 // Sprite system
 export type {

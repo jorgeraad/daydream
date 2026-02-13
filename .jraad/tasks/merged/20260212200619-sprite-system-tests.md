@@ -3,7 +3,7 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 20:06:19 EST |
-| **Last Modified**  | 2026-02-12 21:22:52 EST |
+| **Last Modified**  | 2026-02-12 21:28:08 EST |
 | **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | cool-finch |
@@ -50,3 +50,6 @@ Task complete. Created 4 new test files with 69 new tests total, all passing. Ex
 
 ### 2026-02-12 21:26:44 EST
 Branch merged to main.
+
+### 2026-02-12 21:28:08 EST
+Agent: pure-maple. Added dedicated integration test file (`packages/renderer/src/sprites/__tests__/integration.test.ts`) with 27 end-to-end tests covering the full pipeline: (1) SpriteRegistry.get() -> PixelBuffer.blit() -> encodeHalfBlocks() with verifiable pixel values, (2) built-in sprite library structural validation (dimensions, anchors, hex colors, unique IDs), (3) ZoneBuilder.build() with real built-in SpriteLookup producing correct SpriteInstance arrays, (4) TileRenderer.renderZone() with registered built-in sprites, (5) full ZoneBuilder -> TileRenderer end-to-end chain. All 331 renderer tests and 242 engine tests pass. Zero regressions.
