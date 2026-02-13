@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "catalog:",
+    "@daydream/audio": "workspace:*",
     "zod": "catalog:",
     "zod-to-json-schema": "catalog:",
     "@logtape/logtape": "catalog:"

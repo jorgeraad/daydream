@@ -54,6 +54,17 @@ export class PixelBuffer {
   }
 
   /**
+   * Set the color of a pixel at (x, y), including null values.
+   * Unlike setPixel, this overwrites even with null (useful for
+   * post-processing transforms that modify existing pixel values).
+   * Out-of-bounds writes are silently ignored.
+   */
+  setPixelForce(x: number, y: number, color: SpriteCell): void {
+    if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
+    this.data[y * this.width + x] = color;
+  }
+
+  /**
    * Fill the entire buffer with a single color.
    * Pass null to clear to transparent.
    */

@@ -70,6 +70,31 @@ const mockZoneSpecInput = {
   },
 };
 
+const mockMusicSpecInput = {
+  bpm: 100,
+  key: "Am",
+  timeSignature: 4,
+  channels: [
+    {
+      waveform: "square",
+      duty: "50",
+      volume: 12,
+      pattern: [
+        { pitch: 69, duration: 4, velocity: 12 },
+        { pitch: 72, duration: 4, velocity: 10 },
+      ],
+    },
+    {
+      waveform: "triangle",
+      duty: "50",
+      volume: 10,
+      pattern: [{ pitch: 45, duration: 8, velocity: 12 }],
+    },
+  ],
+  loopMeasures: 4,
+  mood: "mysterious",
+};
+
 const testBuildingVisuals: Record<string, BuildingVisual> = {
   house: {
     border: { tl: "╔", tr: "╗", bl: "╚", br: "╝", h: "═", v: "║" },
@@ -155,6 +180,17 @@ describe("WorldGenerator integration", () => {
           };
         }
 
+        if (toolName === "generate_music") {
+          return {
+            text: "",
+            toolUse: [
+              { type: "tool_use", id: "t3", name: "generate_music", input: mockMusicSpecInput },
+            ],
+            stopReason: "tool_use",
+            usage: { inputTokens: 50, outputTokens: 100 },
+          };
+        }
+
         throw new Error(`Unexpected tool: ${toolName}`);
       }),
     };
@@ -170,8 +206,8 @@ describe("WorldGenerator integration", () => {
       progressMessages.push(status);
     });
 
-    // Verify AI was called twice (seed + zone)
-    expect(mockAIClient.generate).toHaveBeenCalledTimes(2);
+    // Verify AI was called three times: seed, then zone + music in parallel
+    expect(mockAIClient.generate).toHaveBeenCalledTimes(3);
 
     // Verify world seed
     expect(world.seed.originalPrompt).toBe("a dark forest");
@@ -189,6 +225,12 @@ describe("WorldGenerator integration", () => {
     expect(world.characters[0]!.name).toBe("Elara");
     expect(world.characters[0]!.role).toBe("herbalist");
     expect(world.characters[0]!.speechPattern).toBe("soft and measured");
+
+    // Verify music spec was generated
+    expect(world.musicSpec).toBeDefined();
+    expect(world.musicSpec!.bpm).toBe(100);
+    expect(world.musicSpec!.key).toBe("Am");
+    expect(world.musicSpec!.channels).toHaveLength(2);
 
     // Verify palette was selected (forest keyword → forest palette)
     expect(world.palette).toBeDefined();

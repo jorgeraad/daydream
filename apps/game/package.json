@@ -5,6 +5,7 @@
   "dependencies": {
     "@daydream/engine": "workspace:*",
     "@daydream/ai": "workspace:*",
+    "@daydream/audio": "workspace:*",
     "@daydream/renderer": "workspace:*",
     "@logtape/logtape": "catalog:",
     "@logtape/file": "catalog:"

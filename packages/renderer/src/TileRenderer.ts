@@ -2,10 +2,12 @@ import type { OptimizedBuffer } from "@opentui/core";
 import type { ZoneData, TileCell, TileLayer } from "./types.ts";
 import type { ViewportManager } from "./ViewportManager.ts";
 import type { SpriteTemplate, SpriteInstance } from "./sprites/types.ts";
+import type { AnimationState, AnimationOverrides, ColorTransform as AnimColorTransform } from "./animation/types.ts";
 import { PixelBuffer } from "./sprites/PixelBuffer.ts";
 import { SpriteRegistry } from "./sprites/SpriteRegistry.ts";
 import { encodeHalfBlocks } from "./sprites/encode.ts";
 import { resolveGroundTexture } from "./palettes/ground-textures.ts";
+import { applyColorTransform, isIdentityTransform } from "./atmosphere/TimeOfDayOverlay.ts";
 
 /** Default background color for transparent / empty pixels */
 const DEFAULT_BG = "#000000";
@@ -18,6 +20,8 @@ const PLAYER_SPRITE_ID = "player_default";
  * Applied to the PixelBuffer after all sprite compositing but before
  * half-block encoding. Can modify pixel colors in-place for effects
  * like day/night tinting, flash effects, etc.
+ *
+ * @deprecated Use AnimationState parameter on renderZone instead.
  */
 export type ColorTransform = (pixelBuffer: PixelBuffer) => void;
 
@@ -29,6 +33,8 @@ export class TileRenderer {
   /**
    * Optional color transform applied to the PixelBuffer before encoding.
    * Set this to integrate animation / atmosphere effects.
+   *
+   * @deprecated Use AnimationState parameter on renderZone instead.
    */
   colorTransform: ColorTransform | null = null;
 
@@ -48,18 +54,20 @@ export class TileRenderer {
     viewport: ViewportManager,
     playerX: number,
     playerY: number,
+    animState?: AnimationState,
   ): void {
     const { cameraX, cameraY, viewWidth, viewHeight } = viewport;
     const biomeType = zone.biomeType ?? "forest";
+    const overrides = animState?.overrides;
 
     // 1. Clear pixel buffer
     this.pixelBuffer.clear(null);
 
-    // 2. Render ground layer as pixel colors
-    this.renderGroundPixels(zone, cameraX, cameraY, viewWidth, viewHeight, biomeType);
+    // 2. Render ground layer as pixel colors (with animation overrides)
+    this.renderGroundPixels(zone, cameraX, cameraY, viewWidth, viewHeight, biomeType, overrides);
 
-    // 3. Render objects/overlay layers as pixel-colored cells (backward compat)
-    this.renderCharLayers(zone, cameraX, cameraY, viewWidth, viewHeight, biomeType);
+    // 3. Render objects/overlay layers as pixel-colored cells (with animation overrides)
+    this.renderCharLayers(zone, cameraX, cameraY, viewWidth, viewHeight, biomeType, overrides);
 
     // 4. Collect visible sprites, compute screen pixel coords
     const visibleSprites = this.collectVisibleSprites(
@@ -81,7 +89,12 @@ export class TileRenderer {
     // 7. Render player sprite at player position
     this.renderPlayerSprite(playerX, playerY, viewport);
 
-    // 8. Animation integration point: apply color transform if set
+    // 8. Apply time-of-day color transform from AnimationState
+    if (animState?.colorTransform && !isIdentityTransform(animState.colorTransform)) {
+      this.applyColorTransformToPixels(animState.colorTransform);
+    }
+
+    // 8b. Legacy color transform callback (deprecated path)
     if (this.colorTransform) {
       this.colorTransform(this.pixelBuffer);
     }
@@ -91,9 +104,26 @@ export class TileRenderer {
   }
 
   /**
+   * Apply a ColorTransform to every non-null pixel in the PixelBuffer.
+   * This implements time-of-day atmosphere tinting as a post-processing
+   * step, modifying hex colors in-place before half-block encoding.
+   */
+  private applyColorTransformToPixels(transform: AnimColorTransform): void {
+    for (let y = 0; y < this.pixelBuffer.height; y++) {
+      for (let x = 0; x < this.pixelBuffer.width; x++) {
+        const pixel = this.pixelBuffer.getPixel(x, y);
+        if (pixel !== null) {
+          this.pixelBuffer.setPixelForce(x, y, applyColorTransform(pixel, transform));
+        }
+      }
+    }
+  }
+
+  /**
    * Render the ground layer as pixel colors into the PixelBuffer.
    * Each tile produces 2 vertical pixels (top and bottom) using the
-   * biome's ground texture pattern.
+   * biome's ground texture pattern. Animation overrides can replace
+   * the tile's fg/bg colors at specific world coordinates.
    */
   private renderGroundPixels(
     zone: ZoneData,
@@ -102,6 +132,7 @@ export class TileRenderer {
     viewWidth: number,
     viewHeight: number,
     biomeType: string,
+    overrides?: AnimationOverrides,
   ): void {
     const groundLayer = zone.layers.find((l) => l.name === "ground");
     if (!groundLayer) return;
@@ -118,12 +149,23 @@ export class TileRenderer {
         const tile = groundLayer.data[wy * groundLayer.width + wx];
         if (!tile) continue;
 
-        const texture = resolveGroundTexture(tile, biomeType);
-        const [topColor, botColor] = texture.pattern(wx, wy);
+        // Check for animation override at this world coordinate
+        const override = overrides?.get(`${wx},${wy}`);
 
-        // Each tile cell maps to 2 vertical pixels
-        this.pixelBuffer.setPixel(sx, sy * 2, topColor);
-        this.pixelBuffer.setPixel(sx, sy * 2 + 1, botColor);
+        if (override?.fg) {
+          // Override provides explicit colors — use them instead of texture
+          const topColor = override.fg;
+          const botColor = override.bg ?? override.fg;
+          this.pixelBuffer.setPixel(sx, sy * 2, topColor);
+          this.pixelBuffer.setPixel(sx, sy * 2 + 1, botColor);
+        } else {
+          const texture = resolveGroundTexture(tile, biomeType);
+          const [topColor, botColor] = texture.pattern(wx, wy);
+
+          // Each tile cell maps to 2 vertical pixels
+          this.pixelBuffer.setPixel(sx, sy * 2, topColor);
+          this.pixelBuffer.setPixel(sx, sy * 2 + 1, botColor);
+        }
       }
     }
   }
@@ -131,6 +173,7 @@ export class TileRenderer {
   /**
    * Render character-based layers (objects, overlay) into the PixelBuffer.
    * Uses tile foreground color for non-transparent character tiles.
+   * Animation overrides can replace colors at specific world coordinates.
    * This provides backward compatibility for zones that use char-based objects
    * without sprites.
    */
@@ -141,6 +184,7 @@ export class TileRenderer {
     viewWidth: number,
     viewHeight: number,
     _biomeType: string,
+    overrides?: AnimationOverrides,
   ): void {
     const layerOrder: TileLayer["name"][] = ["objects", "overlay"];
     for (const layerName of layerOrder) {
@@ -159,10 +203,14 @@ export class TileRenderer {
           const tile = layer.data[wy * layer.width + wx];
           if (!tile || !tile.char || tile.char === " ") continue;
 
-          // Use the tile's foreground color for both pixels in the cell
-          const color = tile.fg;
+          // Check for animation override at this world coordinate
+          const override = overrides?.get(`${wx},${wy}`);
+
+          // Use override colors if available, otherwise fall back to tile colors
+          const color = override?.fg ?? tile.fg;
+          const bgColor = override?.bg ?? tile.bg ?? color;
           this.pixelBuffer.setPixel(sx, sy * 2, color);
-          this.pixelBuffer.setPixel(sx, sy * 2 + 1, tile.bg ?? color);
+          this.pixelBuffer.setPixel(sx, sy * 2 + 1, bgColor);
         }
       }
     }

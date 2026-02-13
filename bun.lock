@@ -13,6 +13,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@daydream/ai": "workspace:*",
+        "@daydream/audio": "workspace:*",
         "@daydream/engine": "workspace:*",
         "@daydream/renderer": "workspace:*",
         "@logtape/file": "catalog:",
@@ -24,6 +25,7 @@
       "version": "0.0.1",
       "dependencies": {
         "@anthropic-ai/sdk": "catalog:",
+        "@daydream/audio": "workspace:*",
         "@logtape/logtape": "catalog:",
         "zod": "catalog:",
         "zod-to-json-schema": "catalog:",

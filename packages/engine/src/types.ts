@@ -190,6 +190,8 @@ export const ZoneSchema = z.object({
   lastVisited: z.number(),
   metadata: ZoneMetadataSchema,
   sprites: z.array(SpriteInstanceSchema).optional(),
+  /** AI-generated music specification for this zone. Validated with MusicSpecSchema at the boundary. */
+  musicSpec: z.unknown().optional(),
 });
 export type Zone = z.infer<typeof ZoneSchema>;
 

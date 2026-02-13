@@ -8,13 +8,18 @@ import {
   buildWorldCreationPrompt,
   ZONE_GENERATION_SYSTEM_PROMPT,
   buildZoneGenerationPrompt,
+  MUSIC_GENERATION_SYSTEM_PROMPT,
+  buildMusicGenerationPrompt,
   createWorldTool,
   parseWorldSeedResponse,
   createZoneTool,
   parseZoneResponse,
+  generateMusicTool,
+  parseMusicResponse,
   type WorldSeedSpec,
   type ZoneSpec,
 } from "@daydream/ai";
+import { MusicSpecSchema, type MusicSpec } from "@daydream/audio";
 import {
   biomePalettes,
   SpriteRegistry,
@@ -32,6 +37,7 @@ export interface GeneratedWorld {
   zone: ZoneBuildResult;
   characters: ZoneCharacter[];
   palette: BiomePalette;
+  musicSpec?: MusicSpec;
 }
 
 export interface ZoneCharacter {
@@ -126,11 +132,19 @@ export class WorldGenerator {
     const palette = this.selectPalette(seedSpec.biomeMap.centerBiome);
     const seed = this.buildWorldSeed(playerPrompt, seedSpec, palette);
 
-    // Step 3: Generate starting zone
+    // Step 3: Generate starting zone and music in parallel
     onProgress?.("Populating the first zone...");
-    const zoneSpec = await this.generateZone(seed);
-    logger.info("Zone spec generated with {charCount} characters", {
+    const [zoneSpec, musicSpec] = await Promise.all([
+      this.generateZone(seed),
+      this.generateMusicSpec(
+        seedSpec.setting.name,
+        seedSpec.biomeMap.centerBiome,
+        seed.setting.tone,
+      ),
+    ]);
+    logger.info("Zone spec generated with {charCount} characters, music: {hasMusic}", {
       charCount: zoneSpec.characters.length,
+      hasMusic: musicSpec !== undefined,
     });
 
     // Step 4: Build tile data from zone spec (with sprite placement)
@@ -174,7 +188,7 @@ export class WorldGenerator {
       biome: seedSpec.biomeMap.centerBiome,
     });
 
-    return { seed, zone, characters, palette };
+    return { seed, zone, characters, palette, musicSpec };
   }
 
   /**
@@ -202,14 +216,21 @@ export class WorldGenerator {
       : "No active threads.";
     const recentChronicle = context.chronicle.recentSummary || "The player continues exploring.";
 
-    // Call AI to generate zone spec
-    const zoneSpec = await this.generateZoneSpec(
-      context.worldSeed,
-      coords,
-      adjacentDesc,
-      narrativeThreads,
-      recentChronicle,
-    );
+    // Call AI to generate zone spec and music in parallel
+    const [zoneSpec, musicSpec] = await Promise.all([
+      this.generateZoneSpec(
+        context.worldSeed,
+        coords,
+        adjacentDesc,
+        narrativeThreads,
+        recentChronicle,
+      ),
+      this.generateMusicSpec(
+        id,
+        context.biome.type,
+        context.worldSeed.setting.tone,
+      ),
+    ]);
 
     // Select palette based on biome
     const palette = this.selectPalette(context.biome.type);
@@ -268,6 +289,7 @@ export class WorldGenerator {
         name: zoneSpec.name ?? id,
         description: zoneSpec.description ?? "",
       },
+      musicSpec,
     };
   }
 
@@ -297,14 +319,21 @@ export class WorldGenerator {
     // Build adjacent zone description from hints
     const adjacentDesc = this.buildAdjacentDescription(context.adjacentHints);
 
-    // Call AI with portal-enhanced prompt
+    // Call AI with portal-enhanced prompt and music generation in parallel
     onProgress?.("Shaping your destination...");
-    const zoneSpec = await this.generatePortalZoneSpec(
-      context.worldSeed,
-      coords,
-      adjacentDesc,
-      portalDescription,
-    );
+    const [zoneSpec, musicSpec] = await Promise.all([
+      this.generatePortalZoneSpec(
+        context.worldSeed,
+        coords,
+        adjacentDesc,
+        portalDescription,
+      ),
+      this.generateMusicSpec(
+        portalDescription.slice(0, 40),
+        context.biome.type,
+        context.worldSeed.setting.tone,
+      ),
+    ]);
 
     // Select palette based on biome
     onProgress?.("Rendering terrain...");
@@ -364,6 +393,7 @@ export class WorldGenerator {
         name: zoneSpec.name ?? portalDescription.slice(0, 40),
         description: zoneSpec.description ?? portalDescription,
       },
+      musicSpec,
     };
   }
 
@@ -472,6 +502,73 @@ The zone will be rendered in a terminal using Unicode characters and colors. Kee
   }
 
   // ── Private: AI calls ──────────────────────────────────
+
+  /**
+   * Generate a MusicSpec for a zone via AI (haiku model).
+   * Returns undefined if the AI call fails — music is optional, never blocks zone generation.
+   */
+  private async generateMusicSpec(
+    zoneName: string,
+    biomeType: string,
+    mood: string,
+    timeOfDay?: string,
+    weather?: string,
+  ): Promise<MusicSpec | undefined> {
+    try {
+      const response = await this.aiClient.generate({
+        system: MUSIC_GENERATION_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: buildMusicGenerationPrompt({
+              zoneName,
+              biomeType,
+              mood,
+              timeOfDay,
+              weather,
+            }),
+          },
+        ],
+        tools: [generateMusicTool],
+        model: "haiku",
+        maxTokens: 2048,
+        temperature: 0.7,
+        taskType: "music-gen",
+      });
+
+      const toolUse = response.toolUse[0];
+      if (!toolUse) {
+        logger.warn("AI did not return a music spec tool response for zone {zone}", {
+          zone: zoneName,
+        });
+        return undefined;
+      }
+
+      const result = MusicSpecSchema.safeParse(toolUse.input);
+      if (!result.success) {
+        logger.warn("Invalid music spec from AI for zone {zone}: {errors}", {
+          zone: zoneName,
+          errors: result.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join(", "),
+        });
+        return undefined;
+      }
+
+      logger.info("Music spec generated for zone {zone}: {bpm}bpm {key} ({channels} channels)", {
+        zone: zoneName,
+        bpm: result.data.bpm,
+        key: result.data.key,
+        channels: result.data.channels.length,
+      });
+
+      return result.data;
+    } catch (err) {
+      logger.warn("Music generation failed for zone {zone}, continuing without music: {err}", {
+        zone: zoneName,
+        err: err instanceof Error ? err.message : String(err),
+      });
+      return undefined;
+    }
+  }
 
   private async generateWorldSeed(prompt: string): Promise<WorldSeedSpec> {
     const response = await this.aiClient.generate({

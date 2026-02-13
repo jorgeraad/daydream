@@ -108,6 +108,33 @@ const mockZoneSpecInput = {
   },
 };
 
+const mockMusicSpecInput = {
+  bpm: 100,
+  key: "Am",
+  timeSignature: 4,
+  channels: [
+    {
+      waveform: "square",
+      duty: "50",
+      volume: 12,
+      pattern: [
+        { pitch: 69, duration: 4, velocity: 12 },
+        { pitch: 72, duration: 4, velocity: 10 },
+      ],
+    },
+    {
+      waveform: "triangle",
+      duty: "50",
+      volume: 10,
+      pattern: [
+        { pitch: 45, duration: 8, velocity: 12 },
+      ],
+    },
+  ],
+  loopMeasures: 4,
+  mood: "mysterious",
+};
+
 const testBuildingVisuals: Record<string, BuildingVisual> = {
   house: {
     border: { tl: "╔", tr: "╗", bl: "╚", br: "╝", h: "═", v: "║" },
@@ -341,6 +368,7 @@ describe("E2E Smoke Test", () => {
     const aiClient = createMockAIClient({
       create_world: () => makeToolResponse("create_world", mockWorldSeedInput),
       create_zone: () => makeToolResponse("create_zone", mockZoneSpecInput),
+      generate_music: () => makeToolResponse("generate_music", mockMusicSpecInput),
     });
 
     const generator = new WorldGenerator(
@@ -354,8 +382,8 @@ describe("E2E Smoke Test", () => {
       progressMessages.push(status);
     });
 
-    // AI was called twice: seed + zone
-    expect(aiClient.generate).toHaveBeenCalledTimes(2);
+    // AI was called three times: seed, then zone + music in parallel
+    expect(aiClient.generate).toHaveBeenCalledTimes(3);
 
     // World seed is populated
     expect(world.seed.originalPrompt).toBe("a dark forest");
@@ -726,6 +754,7 @@ describe("E2E Smoke Test", () => {
     const aiClient = createMockAIClient({
       create_world: () => makeToolResponse("create_world", mockWorldSeedInput),
       create_zone: () => makeToolResponse("create_zone", mockZoneSpecInput),
+      generate_music: () => makeToolResponse("generate_music", mockMusicSpecInput),
     });
 
     const generator = new WorldGenerator(

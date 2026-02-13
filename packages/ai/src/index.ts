@@ -48,6 +48,11 @@ export {
   COMPRESSION_SYSTEM_PROMPT,
   buildCompressionPrompt,
 } from "./prompts/compression.ts";
+export {
+  MUSIC_GENERATION_SYSTEM_PROMPT,
+  buildMusicGenerationPrompt,
+} from "./prompts/music-generation.ts";
+export type { MusicGenerationContext } from "./prompts/music-generation.ts";
 
 // Tool schemas and parsers
 export {
@@ -83,6 +88,11 @@ export type {
   WorldTickResult,
   WorldSeedSpec,
 } from "./tools/event-tools.ts";
+
+export {
+  generateMusicTool,
+  parseMusicResponse,
+} from "./tools/music-tools.ts";
 
 // Utilities
 export { createToolDef, validateToolResponse } from "./tools/schema-utils.ts";

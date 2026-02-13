@@ -23,7 +23,8 @@ export type TaskType =
   | "event-evaluation"
   | "world-tick"
   | "chronicle-compression"
-  | "tile-palette";
+  | "tile-palette"
+  | "music-generation";
 
 export const TASK_MODEL_MAP: Record<TaskType, ModelTier> = {
   "world-creation": "opus",
@@ -34,6 +35,7 @@ export const TASK_MODEL_MAP: Record<TaskType, ModelTier> = {
   "world-tick": "sonnet",
   "chronicle-compression": "haiku",
   "tile-palette": "haiku",
+  "music-generation": "haiku",
 };
 
 export interface GenerateParams {

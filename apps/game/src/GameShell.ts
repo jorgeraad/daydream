@@ -14,8 +14,9 @@ import {
   NarrativeBar,
   SpriteRegistry,
   ALL_SPRITES,
+  AnimationManager,
 } from "@daydream/renderer";
-import type { ZoneData } from "@daydream/renderer";
+import type { ZoneData, AnimationState } from "@daydream/renderer";
 
 export type GameMode = "exploration" | "dialogue" | "menu";
 
@@ -37,6 +38,7 @@ export class GameShell {
   private tileRenderer: TileRenderer;
   private viewportManager: ViewportManager;
   private spriteRegistry: SpriteRegistry;
+  private animationManager: AnimationManager;
 
   // Game state
   private zone: ZoneData;
@@ -107,6 +109,14 @@ export class GameShell {
     this.spriteRegistry = new SpriteRegistry();
     this.spriteRegistry.registerBuiltins(ALL_SPRITES);
     this.tileRenderer = new TileRenderer(this.viewportFB.frameBuffer, this.spriteRegistry);
+    this.animationManager = new AnimationManager(renderer);
+
+    // Register frame callback for continuous animation updates
+    this.frameCallback = this.frameCallback.bind(this);
+    renderer.setFrameCallback(this.frameCallback);
+
+    // Register initial zone animations
+    this.animationManager.registerZoneAnimations(zone);
 
     // Focus viewport for keyboard input
     this.viewportFB.focus();
@@ -120,6 +130,54 @@ export class GameShell {
     this.narrativeBar.addLine(
       "You find yourself in a quiet forest clearing...",
     );
+  }
+
+  /**
+   * Frame callback called by OpenTUI on each render frame.
+   * Updates animations and re-renders the zone with current animation state.
+   */
+  private async frameCallback(deltaTime: number): Promise<void> {
+    this.animationManager.update(deltaTime);
+    this.renderFrame();
+  }
+
+  /**
+   * Get the current animation state for rendering.
+   */
+  private getAnimationState(): AnimationState {
+    return {
+      overrides: this.animationManager.getOverrides(),
+      colorTransform: this.animationManager.getColorTransform(),
+    };
+  }
+
+  /**
+   * Render a single frame of the game world with current animation state.
+   */
+  private renderFrame(): void {
+    this.viewportManager.updateCamera(
+      this.playerX,
+      this.playerY,
+      this.zone.width,
+      this.zone.height,
+    );
+    this.tileRenderer.renderZone(
+      this.zone,
+      this.viewportManager,
+      this.playerX,
+      this.playerY,
+      this.getAnimationState(),
+    );
+  }
+
+  /**
+   * Handle zone change: clear old animations and register new ones.
+   * Call this when the player enters a new zone.
+   */
+  onZoneEntered(zone: ZoneData): void {
+    this.zone = zone;
+    this.animationManager.clearAll();
+    this.animationManager.registerZoneAnimations(zone);
   }
 
   static async create(
@@ -149,23 +207,13 @@ export class GameShell {
   }
 
   start(): void {
-    this.viewportManager.updateCamera(
-      this.playerX,
-      this.playerY,
-      this.zone.width,
-      this.zone.height,
-    );
-    this.tileRenderer.renderZone(
-      this.zone,
-      this.viewportManager,
-      this.playerX,
-      this.playerY,
-    );
-
+    this.renderFrame();
     this.renderer.auto();
   }
 
   destroy(): void {
+    this.renderer.removeFrameCallback(this.frameCallback);
+    this.animationManager.clearAll();
     this.renderer.destroy();
   }
 
@@ -237,18 +285,7 @@ export class GameShell {
     if (!isCollision(this.zone, nx, ny)) {
       this.playerX = nx;
       this.playerY = ny;
-      this.viewportManager.updateCamera(
-        this.playerX,
-        this.playerY,
-        this.zone.width,
-        this.zone.height,
-      );
-      this.tileRenderer.renderZone(
-        this.zone,
-        this.viewportManager,
-        this.playerX,
-        this.playerY,
-      );
+      this.renderFrame();
       this.renderer.requestRender();
     }
   }
@@ -260,18 +297,7 @@ export class GameShell {
     this.viewportManager.resize(newWidth, newHeight);
     this.tileRenderer = new TileRenderer(this.viewportFB.frameBuffer, this.spriteRegistry);
 
-    this.viewportManager.updateCamera(
-      this.playerX,
-      this.playerY,
-      this.zone.width,
-      this.zone.height,
-    );
-    this.tileRenderer.renderZone(
-      this.zone,
-      this.viewportManager,
-      this.playerX,
-      this.playerY,
-    );
+    this.renderFrame();
     this.renderer.requestRender();
   }
 }
