@@ -41,6 +41,12 @@ import type { ZoneStore, ZoneGeneratorFn, ZoneGenerationContext } from "@daydrea
 import type { ZoneData, TileCell, TileLayer } from "@daydream/renderer";
 import type { BuildingVisual, ObjectVisual, ZoneBuildResult } from "@daydream/engine";
 import { AIClient, ContextManager } from "@daydream/ai";
+import {
+  AudioManager,
+  detectPlayer,
+  createAudioPlayer,
+} from "@daydream/audio";
+import type { MusicSpec } from "@daydream/audio";
 import { InputRouter } from "./InputRouter.ts";
 import { LocationBrowser } from "./LocationBrowser.ts";
 import { DialogueManager } from "./DialogueManager.ts";
@@ -49,6 +55,7 @@ import type { TitleScreenResult } from "./TitleScreen.ts";
 import { WorldGenerator, type ZoneCharacter } from "./WorldGenerator.ts";
 import { PortalPrompt } from "./PortalPrompt.ts";
 import { SaveManager } from "./SaveManager.ts";
+import { WorldBrowser } from "./WorldBrowser.ts";
 import { SettingsManager } from "./settings/SettingsManager.ts";
 import { SettingsScreen } from "./settings/SettingsScreen.ts";
 import { OnboardingScreen } from "./OnboardingScreen.ts";
@@ -502,6 +509,24 @@ function startGameplay(opts: GameplayOptions): void {
     worldState.characters.set(char.id, char);
   }
 
+  // Initialize AudioManager — detect player, create players, wire EventBus
+  const playerInfo = detectPlayer();
+  const musicPlayer = createAudioPlayer(playerInfo);
+  const sfxPlayer = createAudioPlayer(playerInfo);
+  const audioManager = new AudioManager({
+    eventBus,
+    musicPlayer,
+    sfxPlayer,
+    zoneMusicLookup: (zoneId: string) => {
+      const z = worldState.zones.get(zoneId);
+      if (!z || !z.musicSpec) return null;
+      return z.musicSpec as MusicSpec;
+    },
+  });
+
+  // Emit initial zone:entered so music starts for the first zone
+  eventBus.emit("zone:entered", { zoneId: zone.id });
+
   // Wire up DialogueManager if AI client is available
   let dialogueManager: DialogueManager | null = null;
   if (aiClient) {
@@ -709,6 +734,7 @@ function startGameplay(opts: GameplayOptions): void {
     );
 
     transitioning = false;
+    eventBus.emit("zone:entered", { zoneId: zone.id });
     updateMovementContext();
     renderFrame();
 
@@ -779,6 +805,7 @@ function startGameplay(opts: GameplayOptions): void {
     );
 
     transitioning = false;
+    eventBus.emit("zone:entered", { zoneId: zone.id });
     updateMovementContext();
     renderFrame();
 
@@ -934,6 +961,7 @@ function startGameplay(opts: GameplayOptions): void {
       );
 
       transitioning = false;
+      eventBus.emit("zone:entered", { zoneId: zone.id });
       inputRouter.setMode("exploration");
       updateMovementContext();
       renderFrame();
@@ -986,6 +1014,7 @@ function startGameplay(opts: GameplayOptions): void {
           // Keep WorldState player position in sync
           worldState.player.position.x = px;
           worldState.player.position.y = py;
+          eventBus.emit("player:moved", { position: { x: px, y: py }, zone: zone.id });
           updateMovementContext();
           renderFrame();
         }
@@ -1017,80 +1046,128 @@ function startGameplay(opts: GameplayOptions): void {
   renderer.root.add(narrativeBar.container);
   updateMovementContext();
   renderFrame();
+
+  // Clean up AudioManager on process exit
+  const cleanupAudio = () => {
+    audioManager.destroy().catch(() => {});
+  };
+  process.on("exit", cleanupAudio);
+  process.on("SIGINT", cleanupAudio);
+  process.on("SIGTERM", cleanupAudio);
 }
 
-// ── Main ─────────────────────────────────────────────────────
+// ── Load existing world ─────────────────────────────────────
 
-async function main() {
-  // Load settings and configure logging before anything else
-  const settingsManager = new SettingsManager();
-  settingsManager.load();
+async function loadAndStartWorld(
+  renderer: Awaited<ReturnType<typeof createCliRenderer>>,
+  settingsManager: SettingsManager,
+  spriteRegistry: SpriteRegistry,
+  worldId: string,
+  logger: ReturnType<typeof getLogger>,
+): Promise<void> {
+  // Show loading screen while restoring world
+  const loadingScreen = new LoadingScreen(renderer);
+  loadingScreen.show();
+  loadingScreen.setStatus("Resuming world...");
 
-  await configureLogging({
-    level: (settingsManager.get<string>("logging.level") as LogLevel) ?? "info",
-    format: (settingsManager.get<string>("logging.format") as "text" | "json") ?? "text",
-  });
+  try {
+    const saveManager = new SaveManager(worldId);
+    const worldState = saveManager.loadWorld();
 
-  const logger = getLogger(["daydream", "game"]);
-  logger.info("Daydream starting");
-
-  const renderer = await createCliRenderer({
-    exitOnCtrlC: true,
-    useAlternateScreen: true,
-    useMouse: false,
-    targetFps: 15,
-    maxFps: 30,
-  });
-  renderer.start();
-
-  // Onboarding gate — ensure API key is configured before proceeding
-  if (!settingsManager.hasApiKey("anthropic")) {
-    const onboarding = new OnboardingScreen(renderer, settingsManager);
-    await onboarding.show();
-    onboarding.destroy();
-  }
-
-  // Title screen loop — returns to title after settings
-  const titleScreen = new TitleScreen(renderer);
-  let playerPrompt: string;
-  while (true) {
-    const result: TitleScreenResult = await titleScreen.show();
-    if (result.type === "settings") {
-      titleScreen.destroy();
-      const settingsScreen = new SettingsScreen(renderer, settingsManager);
-      settingsScreen.setOnLoggingChange(() => {
-        configureLogging({
-          level: (settingsManager.get<string>("logging.level") as LogLevel) ?? "info",
-          format: (settingsManager.get<string>("logging.format") as "text" | "json") ?? "text",
-        });
-      });
-      await settingsScreen.show();
-      settingsScreen.destroy();
-      // If user deleted their key in settings, re-run onboarding
-      if (!settingsManager.hasApiKey("anthropic")) {
-        const onboarding = new OnboardingScreen(renderer, settingsManager);
-        await onboarding.show();
-        onboarding.destroy();
-      }
-      continue;
+    // Get the active zone
+    const activeZone = worldState.zones.get(worldState.activeZoneId);
+    if (!activeZone) {
+      throw new Error(`Active zone "${worldState.activeZoneId}" not found in saved data`);
     }
-    playerPrompt = result.value;
-    break;
-  }
-  titleScreen.destroy();
 
-  // Initialize shared sprite registry — used by WorldGenerator and TileRenderer
-  const spriteRegistry = new SpriteRegistry();
-  spriteRegistry.registerBuiltins(ALL_SPRITES);
-  await spriteRegistry.loadCache().then((count) => {
-    if (count > 0) logger.info("Loaded {count} cached sprite templates", { count });
-  }).catch((err) => {
-    logger.warn("Failed to load sprite cache: {err}", {
-      err: err instanceof Error ? err.message : String(err),
+    // Convert to ZoneData for rendering
+    const zone = zoneToZoneData(activeZone);
+
+    // Restore player position
+    const spawnX = worldState.player.position.x;
+    const spawnY = worldState.player.position.y;
+
+    // Collect characters in the active zone
+    const characters: Character[] = [];
+    for (const char of worldState.characters.values()) {
+      characters.push(char);
+    }
+
+    // Create AIClient — API key is guaranteed at this point
+    const aiClient = new AIClient({ apiKey: settingsManager.getApiKey("anthropic") });
+
+    // Create WorldGenerator (needed for portal/zone generation from loaded world)
+    const generator = new WorldGenerator(
+      aiClient,
+      toBuildingVisuals(),
+      toObjectVisuals(),
+      spriteRegistry,
+    );
+
+    // Set up ZoneManager
+    const worldSeed = worldState.worldSeed;
+    const zoneStore = createZoneStore(saveManager, worldState);
+    const zoneGeneratorFn = createZoneGeneratorFn(generator);
+
+    const zoneManager = new ZoneManager({
+      worldSeed,
+      zoneGenerator: zoneGeneratorFn,
+      zoneStore,
     });
-  });
 
-  // Generate world — API key is guaranteed at this point
+    // Activate the active zone (this will find it via zoneStore → WorldState.zones)
+    await zoneManager.activateZone(worldState.activeZoneId as ZoneId);
+    logger.info("Loaded world {worldId}: zone {zoneId} at ({x}, {y}), {charCount} characters, {zoneCount} zones", {
+      worldId,
+      zoneId: worldState.activeZoneId,
+      x: spawnX,
+      y: spawnY,
+      charCount: characters.length,
+      zoneCount: worldState.zones.size,
+    });
+
+    loadingScreen.destroy();
+
+    startGameplay({
+      renderer,
+      zone,
+      characters,
+      playerX: spawnX,
+      playerY: spawnY,
+      aiClient,
+      zoneManager,
+      worldState,
+      generator,
+      saveManager,
+      spriteRegistry,
+    });
+
+    // Start auto-save for loaded worlds
+    saveManager.startAutoSave(worldState);
+  } catch (err) {
+    logger.error("Failed to load world {worldId}: {err}", {
+      worldId,
+      err: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+
+    loadingScreen.setStatus("Failed to load world — returning to title...");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    loadingScreen.destroy();
+    // Re-throw so main() can handle it
+    throw err;
+  }
+}
+
+// ── Generate new world ──────────────────────────────────────
+
+async function generateAndStartWorld(
+  renderer: Awaited<ReturnType<typeof createCliRenderer>>,
+  settingsManager: SettingsManager,
+  spriteRegistry: SpriteRegistry,
+  playerPrompt: string,
+  logger: ReturnType<typeof getLogger>,
+): Promise<void> {
   logger.info("Generating world from prompt: {prompt}", { prompt: playerPrompt });
   const loadingScreen = new LoadingScreen(renderer);
   loadingScreen.show();
@@ -1258,6 +1335,103 @@ async function main() {
     saveManager,
     spriteRegistry,
   });
+}
+
+// ── Main ─────────────────────────────────────────────────────
+
+async function main() {
+  // Load settings and configure logging before anything else
+  const settingsManager = new SettingsManager();
+  settingsManager.load();
+
+  await configureLogging({
+    level: (settingsManager.get<string>("logging.level") as LogLevel) ?? "info",
+    format: (settingsManager.get<string>("logging.format") as "text" | "json") ?? "text",
+  });
+
+  const logger = getLogger(["daydream", "game"]);
+  logger.info("Daydream starting");
+
+  const renderer = await createCliRenderer({
+    exitOnCtrlC: true,
+    useAlternateScreen: true,
+    useMouse: false,
+    targetFps: 15,
+    maxFps: 30,
+  });
+  renderer.start();
+
+  // Onboarding gate — ensure API key is configured before proceeding
+  if (!settingsManager.hasApiKey("anthropic")) {
+    const onboarding = new OnboardingScreen(renderer, settingsManager);
+    await onboarding.show();
+    onboarding.destroy();
+  }
+
+  // Initialize shared sprite registry — used by WorldGenerator and TileRenderer
+  const spriteRegistry = new SpriteRegistry();
+  spriteRegistry.registerBuiltins(ALL_SPRITES);
+  await spriteRegistry.loadCache().then((count) => {
+    if (count > 0) logger.info("Loaded {count} cached sprite templates", { count });
+  }).catch((err) => {
+    logger.warn("Failed to load sprite cache: {err}", {
+      err: err instanceof Error ? err.message : String(err),
+    });
+  });
+
+  // Title screen loop — returns to title after settings or browsing
+  const titleScreen = new TitleScreen(renderer);
+  let titleResult: TitleScreenResult;
+  while (true) {
+    const result: TitleScreenResult = await titleScreen.show();
+
+    if (result.type === "settings") {
+      titleScreen.destroy();
+      const settingsScreen = new SettingsScreen(renderer, settingsManager);
+      settingsScreen.setOnLoggingChange(() => {
+        configureLogging({
+          level: (settingsManager.get<string>("logging.level") as LogLevel) ?? "info",
+          format: (settingsManager.get<string>("logging.format") as "text" | "json") ?? "text",
+        });
+      });
+      await settingsScreen.show();
+      settingsScreen.destroy();
+      // If user deleted their key in settings, re-run onboarding
+      if (!settingsManager.hasApiKey("anthropic")) {
+        const onboarding = new OnboardingScreen(renderer, settingsManager);
+        await onboarding.show();
+        onboarding.destroy();
+      }
+      continue;
+    }
+
+    if (result.type === "browse") {
+      titleScreen.destroy();
+      const browser = new WorldBrowser(renderer);
+      const browseResult = await browser.show();
+      browser.destroy();
+      if (browseResult.type === "select") {
+        titleResult = { type: "load", worldId: browseResult.worldId };
+        break;
+      }
+      // "back" — return to title screen
+      continue;
+    }
+
+    // "prompt", "continue", or "load" — proceed
+    titleResult = result;
+    break;
+  }
+  titleScreen.destroy();
+
+  // ── Route based on title screen result ──────────────────────
+  if (titleResult.type === "continue" || titleResult.type === "load") {
+    // Load existing world
+    await loadAndStartWorld(renderer, settingsManager, spriteRegistry, titleResult.worldId, logger);
+  } else if (titleResult.type === "prompt") {
+    // New world generation
+    await generateAndStartWorld(renderer, settingsManager, spriteRegistry, titleResult.value, logger);
+  }
 }
 
 main().catch(console.error);

@@ -29,6 +29,7 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `world-generation` | 3 | 3 | Complete |
 | `animation-atmosphere` | 6 | 6 | Complete |
 | `audio` | 5 | 7 | In Progress |
+| `world-resume` | 0 | 2 | Ready |
 | `logging` | 6 | 6 | Complete |
 | `text-input` | 4 | 4 | Complete |
 | `multi-zone-world` | 8 | 8 | Complete |
@@ -40,7 +41,7 @@ _No tasks currently in progress._
 
 ## Completed (Pending Merge)
 
-_None — all completed tasks have been merged._
+- **20260213174841 - World Browser Screen** | Branch: `main` | Completed: 2026-02-13
 
 ## Commit Queue
 
@@ -52,6 +53,6 @@ _Empty — no agents waiting to commit._
 
 ## Ready
 - **20260212145510 - AudioManager & Game Integration** — Orchestrates music + SFX via EventBus | Touches: `packages/audio/src/`, `apps/game/src/`, `packages/engine/src/event/`
-
 ## Up Next
 - **20260212145511 - Audio Settings & UI** — Blocked-By: 20260212145510
+- **20260213174901 - Title Screen Menu & Load Flow** — Blocked-By: 20260213174841 (unblocked, ready for Wave 2)
