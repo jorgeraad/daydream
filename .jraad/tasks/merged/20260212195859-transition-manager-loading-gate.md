@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 19:58:59 EST |
 | **Last Modified**  | 2026-02-12 20:13:07 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | sharp-raven |
 | **Blocked-By**     | none |
@@ -48,3 +48,6 @@ Starting work on branch `main`. Agent: sharp-raven. Reading existing renderer co
 
 ### 2026-02-12 20:13:07 EST
 Implementation complete. Created TransitionManager using OpenTUI's BrightnessEffect as a post-process filter for fade animations, with requestLive/dropLive lifecycle management. Created LoadingGate with pulsing ░/▒ characters along zone edges, timer-based pulse animation, and viewport-aware rendering. Leveraged OpenTUI's addPostProcessFn/removePostProcessFn API rather than manual color manipulation. Exported both classes and TransitionOverrides type from renderer package index. All 23 tests pass, no type errors in new files (pre-existing type errors in other packages unrelated to this task).
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

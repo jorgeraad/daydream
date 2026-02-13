@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 19:58:55 EST |
 | **Last Modified**  | 2026-02-12 20:11:31 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | slim-jackal |
 | **Blocked-By**     | none |
@@ -63,3 +63,6 @@ Files created:
 
 Files modified:
 - `packages/engine/src/index.ts` — added exports for all new types and classes
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

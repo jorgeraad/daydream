@@ -4,7 +4,7 @@
 |--------------------|-------|
 | **Created**        | 2026-02-12 19:59:02 EST |
 | **Last Modified**  | 2026-02-12 20:25:21 EST |
-| **Status**         | completed |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | prime-osprey |
 | **Blocked-By**     | 20260212195855, 20260212195859 |
@@ -52,3 +52,6 @@ Starting work on branch `main`. Agent: prime-osprey. Read all dependency files: 
 
 ### 2026-02-12 20:25:21 EST
 Implementation complete. All changes in WorldGenerator.ts and index.ts. GameShell.ts and InputRouter.ts were not modified — zone transition logic lives in the startGameplay() closure in index.ts where it has access to all the mutable state (zone, player position, viewport, etc.). This avoids a large refactor of GameShell while keeping all multi-zone concerns in one well-integrated location. Typecheck passes (only pre-existing test file errors). All 69 game tests pass.
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

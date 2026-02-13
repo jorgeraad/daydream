@@ -3,8 +3,8 @@
 | Field              | Value |
 |--------------------|-------|
 | **Created**        | 2026-02-12 13:31:27 EST |
-| **Last Modified**  | 2026-02-12 14:34:26 EST |
-| **Status**         | in-progress |
+| **Last Modified**  | 2026-02-12 21:04:28 EST |
+| **Status**         | merged |
 | **Branch**         | main |
 | **Agent**          | deep-finch |
 | **Blocked-By**     | none |
@@ -28,23 +28,23 @@ Key areas to design:
 
 ## Acceptance Criteria
 
-- [ ] Design document written and approved via `/design-doc` process
-- [ ] Covers audio playback approach for terminal environments (library/API selection)
-- [ ] Covers AI music generation pipeline (prompt → audio, model/service selection)
-- [ ] Covers 8-bit style constraints and generation parameters
-- [ ] Covers looping strategy (seamless loops, transition handling)
-- [ ] Covers sound effects catalog and trigger system
-- [ ] Covers settings schema (music on/off, SFX on/off, volume)
-- [ ] Covers integration with existing settings system
-- [ ] Addresses performance and resource management
+- [x] Design document written and approved via `/design-doc` process
+- [x] Covers audio playback approach for terminal environments (library/API selection)
+- [x] Covers AI music generation pipeline (prompt → audio, model/service selection)
+- [x] Covers 8-bit style constraints and generation parameters
+- [x] Covers looping strategy (seamless loops, transition handling)
+- [x] Covers sound effects catalog and trigger system
+- [x] Covers settings schema (music on/off, SFX on/off, volume)
+- [x] Covers integration with existing settings system
+- [x] Addresses performance and resource management
 
 ## Implementation Steps
 
 - [x] Research audio playback libraries for Node.js/Bun terminal apps
 - [x] Research AI music generation APIs/services
 - [x] Draft design doc using `/design-doc` process
-- [ ] Iterate on design based on feedback
-- [ ] Finalize design doc
+- [x] Iterate on design based on feedback
+- [x] Finalize design doc
 
 ## Progress Log
 
@@ -66,3 +66,9 @@ Awaiting user review before finalizing.
 
 ### 2026-02-12 14:34:26 EST
 Moved design doc to proper location: `.jraad/docs/design-docs/20260212143111-music-sound-effects.md`. Added proper metadata header (Created, Last Modified, Status: draft, Author, Task reference). Expanded content with more detailed code examples (WAV encoder, oscillator implementations, AudioPlayer full API), added Appendix B (audio player compatibility matrix), expanded architecture data flow diagrams. Updated Touches field.
+
+### 2026-02-12 21:04:28 EST
+Design doc approved. Audio implementation tasks created. Marking complete.
+
+### 2026-02-12 21:04:28 EST
+Branch merged to main.

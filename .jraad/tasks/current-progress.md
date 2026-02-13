@@ -5,18 +5,15 @@
 > When in doubt, check those directories directly.
 
 ## Overview
-Daydream is an AI-native terminal game where every world is generated from a single prompt. Project scaffolding complete — Bun monorepo with 4 packages, OpenTUI rendering a title screen. Foundation layer merged (engine types, AI client, tile renderer, Zod validation). Now implementing feature tracks: TUI layout, character rendering, AI world generation in parallel.
+Daydream is an AI-native terminal game where every world is generated from a single prompt. Foundation complete. Multi-zone world system landed (ZoneManager, TransitionManager, Edge Coherence, AI zone hints, Location History). Sprite system foundation landed (types, PixelBuffer, SpriteRegistry, half-block encoder, built-in library, ZoneBuilder integration). Now implementing: TileRenderer pixel rewrite, mini-map, animations, audio, and remaining polish tasks.
 
 ## Shared Context
-- **[2026-02-12]** [persistent] Planning: 12 MVP tasks created. After scaffolding, 3 parallel tracks: engine types, AI client, tile renderer. *(Agent: quick-lemur)*
 - **[2026-02-12]** [persistent] Build: Bun catalogs require `workspaces` object format (not array). tsconfig uses `emitDeclarationOnly` for project references. *(Agent: quick-lemur, Re: 20260212114207)*
 - **[2026-02-12]** [persistent] Pattern: AI tool schemas are now Zod-derived. Use `createToolDef(name, desc, zodSchema)` for new tools and `validateToolResponse(toolUse, name, schema)` for parsing. See `packages/ai/src/tools/schema-utils.ts`. *(Agent: neat-lynx, Re: 20260212122011)*
-- **[2026-02-12]** Coordination: 3 tasks in parallel on `main` — TUI Layout (bold-falcon), Character Rendering, AI World Gen (quick-bobcat). All touch `apps/game/src/` but different files. *(Agent: quick-bobcat)*
-- **[2026-02-12]** Integration: GameShell (`apps/game/src/GameShell.ts`) is ready but not wired into `index.ts`. Whoever integrates should use `new GameShell(renderer, zone, x, y)` and call `shell.start()`. It handles layout, input, viewport resize. *(Agent: bold-falcon, Re: 20260212114211)*
-- **[2026-02-12]** Integration: SaveManager (`apps/game/src/SaveManager.ts`) is ready. Usage: `new SaveManager(worldId)` for default path (~/.daydream/worlds/), or `new SaveManager(worldId, { dbPath })` for custom path (tests). Call `saveWorld(ws)` then `startAutoSave(ws)`. Character relationships are serialized as Map↔Object. Chronicle hydration: entries are appended then unsaved buffer is cleared. Still needs: Ctrl+S wiring in InputRouter, save/load screen in GameShell. *(Agent: neat-lynx, Re: 20260212114217)*
-- **[2026-02-12]** Integration: Game flow is now TitleScreen → WorldGenerator (if API key) → gameplay, with fallback to hardcoded test zone. `WorldGenerator` orchestrates: prompt → WorldSeed (Opus) → ZoneSpec (Sonnet) → ZoneBuilder → tile data. `ZoneBuilder` is in engine package — accepts palettes/templates as params (no AI import dependency). *(Agent: quick-bobcat, Re: 20260212114214)*
-- **[2026-02-12]** Gotcha: OpenTUI `TextRenderable` uses `fg` property for text color, NOT `color`. TextOptions extends TextBufferOptions which has `fg`/`bg`. *(Agent: quick-bobcat, Re: 20260212114214)*
 - **[2026-02-12]** [persistent] Logging: LogTape configured via `apps/game/src/logging/`. Use `getLogger(["daydream", ...])` in any package. Test helper: `createTestLogSink()` from `@daydream/engine`. *(Agent: fast-hawk, Re: logging feature)*
+- **[2026-02-12]** Integration: Game flow is now TitleScreen → WorldGenerator (if API key) → gameplay, with fallback to hardcoded test zone. Multi-zone: ZoneManager handles zone graph, TransitionManager handles loading/transitions, LocationBrowser for fast-travel (L key). *(Agent: steady-heron)*
+- **[2026-02-12]** Gotcha: OpenTUI `TextRenderable` uses `fg` property for text color, NOT `color`. *(Agent: quick-bobcat, Re: 20260212114214)*
+- **[2026-02-12]** Gotcha: Two tasks share timestamp prefix `20260212145509` — "AI Music Generation" and "Animation Types & Manager Core". Animation tasks (145529, 145546) reference the animation one. *(Agent: steady-heron)*
 
 ## Feature Progress
 
@@ -29,18 +26,18 @@ Daydream is an AI-native terminal game where every world is generated from a sin
 | `rendering` | 2 | 2 | Complete |
 | `persistence` | 2 | 2 | Complete |
 | `settings` | 1 | 1 | Complete |
-| `gameplay` | 2 | 3 | In Progress |
-| `world-generation` | 1 | 3 | In Progress |
+| `gameplay` | 2 | 3 | Ready |
+| `world-generation` | 2 | 3 | Ready |
 | `animation-atmosphere` | 1 | 6 | Ready |
-| `audio` | 0 | 7 | In Progress |
+| `audio` | 1 | 7 | Ready |
 | `logging` | 6 | 6 | Complete |
 | `text-input` | 4 | 4 | Complete |
-| `multi-zone-world` | 6 | 7 | In Progress |
-| `advanced-sprites` | 7 | 10 | In Progress |
+| `multi-zone-world` | 7 | 8 | Ready |
+| `advanced-sprites` | 7 | 10 | Ready |
 
 ## In Progress
-- **20260212125925 - DD: Multi-Zone World & Zone Transitions** | Touches: `.jraad/docs/design-docs/20260212143327-multi-zone-world.md` | Branch: `main` | Agent: swift-kestrel
-- **20260212133127 - DD: Music & Sound Effects System** | Touches: `.jraad/docs/design-docs/20260212143111-music-sound-effects.md` | Branch: `main` | Agent: deep-finch
+
+_No tasks currently in progress._
 
 ## Completed (Pending Merge)
 
@@ -55,25 +52,22 @@ _None — all completed tasks have been merged._
 _Empty — no agents waiting to commit._
 
 ## Ready
-
+- **20260212125927 - Mini-Map Rendering** — Zone-aware mini-map display | Touches: `packages/renderer/src/ui/MiniMap.ts`
 - **20260212125928 - Loading Animations** — Enhanced loading screen animations | Touches: `packages/renderer/src/ui/LoadingScreen.ts`
-- **20260212145509 - Animation Types & Manager Core** — Animation interface, CellOverride, AnimationManager with requestLive/dropLive lifecycle | Touches: `packages/renderer/src/animation/`
-- **20260212195917 - New Location Prompt (Portal)** — New location portal prompt UI | Touches: `apps/game/src/`, `packages/renderer/src/ui/`
-- **20260212200617 - TileRenderer Pixel Rewrite** — Rewrite TileRenderer to use pixel sprites + half-block encoding | Touches: `packages/renderer/src/TileRenderer.ts`
-- **20260212125927 - Mini-Map Rendering** — Mini-map display component | Touches: `packages/renderer/src/ui/`
+- **20260212125929 - E2E Smoke Test** — End-to-end gameplay smoke test | Touches: `apps/game/src/__tests__/`
+- **20260212145506 - Audio Package Scaffolding & Playback** — New @daydream/audio package with AudioPlayer | Touches: `packages/audio/`
+- **20260212145509 - Animation Types & Manager Core** — Animation interface, CellOverride, AnimationManager | Touches: `packages/renderer/src/animation/`
+- **20260212195917 - New Location Prompt (Portal)** — Portal prompt for new zone generation | Touches: `apps/game/src/`, `packages/ai/src/`
+- **20260212200617 - TileRenderer Pixel Rewrite** — Rewrite TileRenderer for sprite/half-block rendering | Touches: `packages/renderer/src/TileRenderer.ts`, `packages/renderer/src/types.ts`
 
 ## Up Next
-- **20260212145506 - Audio Package Scaffolding & Playback** — Blocked-By: 20260212133127
 - **20260212145507 - Chiptune Synthesis Engine** — Blocked-By: 20260212145506
 - **20260212145508 - Sound Effects System** — Blocked-By: 20260212145506
 - **20260212145509 - AI Music Generation** — Blocked-By: 20260212145507
 - **20260212145510 - AudioManager & Game Integration** — Blocked-By: 20260212145507, 20260212145508, 20260212145509
 - **20260212145511 - Audio Settings & UI** — Blocked-By: 20260212145510
-- **20260212145529 - Tile & Character Animations** — Blocked-By: 20260212145509
-- **20260212145546 - Time-of-Day Atmosphere Overlay** — Blocked-By: 20260212145509
+- **20260212145529 - Tile & Character Animations** — Blocked-By: 20260212145509 (animation-types-manager)
+- **20260212145546 - Time-of-Day Atmosphere Overlay** — Blocked-By: 20260212145509 (animation-types-manager)
 - **20260212145602 - TileRenderer Animation Integration & Game Wiring** — Blocked-By: 20260212145509, 20260212145529, 20260212145546
-
-- **20260212200618 - GameShell & WorldGenerator Sprite Integration** — Blocked-By: 20260212200616, 20260212200617
+- **20260212200618 - GameShell & WorldGenerator Sprite Integration** — Blocked-By: 20260212200617
 - **20260212200619 - Sprite System Tests** — Blocked-By: 20260212200617
-
-- **20260212125929 - E2E Smoke Test** — Blocked-By: 20260212114213, 20260212114216, 20260212195902, 20260212125926

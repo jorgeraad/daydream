@@ -7,7 +7,7 @@
 | **Status**         | todo |
 | **Branch**         | — |
 | **Agent**          | — |
-| **Blocked-By**     | 20260212125925 |
+| **Blocked-By**     | 20260212195902 |
 | **Feature**        | world-generation |
 | **Touches**        | packages/renderer/src/ui/MiniMap.ts |
 | **References**     | [Design Doc](../../docs/design.md), [PRD](../../docs/prd.md) |
