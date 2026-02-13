@@ -29,6 +29,9 @@ export interface GameEvents {
   "save:completed": Record<string, never>;
   "player:moved": { position: Point; zone: string };
   "mode:changed": { from: GameMode; to: GameMode };
+  "audio:music-started": { zoneId: string; mood?: string };
+  "audio:music-stopped": Record<string, never>;
+  "audio:sfx-played": { name: string };
 }
 
 type EventHandler<T> = (data: T) => void;

@@ -79,3 +79,7 @@ export type {
   SFXPreset,
   SFXManagerConfig,
 } from "./sfx/index.ts";
+
+// AudioManager — top-level orchestrator
+export { AudioManager } from "./AudioManager.ts";
+export type { AudioManagerConfig, ZoneMusicLookup } from "./AudioManager.ts";

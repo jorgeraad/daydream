@@ -10,6 +10,7 @@
     }
   },
   "dependencies": {
+    "@daydream/engine": "workspace:*",
     "zod": "catalog:"
   },
   "scripts": {
